@@ -29,13 +29,15 @@ def run() -> None:
     cfg = load_config()["deribit"]
     start, end = study_window(with_warmup=True)
     http = HttpClient(cfg["base_url"], rate=cfg["requests_per_second"])
-    out = RAW_DIR / "deribit" / f"dvol_{cfg['dvol_currency']}_{cfg['dvol_resolution_seconds']}s"
-    months = pd.date_range(start.normalize().replace(day=1), end, freq="MS", tz="UTC")
-    for m0 in months:
-        key = m0.strftime("%Y-%m")
-        if store.is_done(out, key):
-            continue
-        m1 = min(m0 + pd.offsets.MonthBegin(1), end)
-        df = dvol_range(http, cfg["dvol_currency"], max(m0, start), m1, cfg["dvol_resolution_seconds"])
-        store.write_part(df, out, key)
-        print(f"dvol {key}: {len(df):,} bars")
+    for res in cfg["dvol_resolutions_seconds"]:
+        out = RAW_DIR / "deribit" / f"dvol_{cfg['dvol_currency']}_{res}s"
+        months = pd.date_range(start.normalize().replace(day=1), end, freq="MS", tz="UTC")
+        for m0 in months:
+            key = m0.strftime("%Y-%m")
+            if store.is_done(out, key):
+                continue
+            m1 = min(m0 + pd.offsets.MonthBegin(1), end)
+            df = dvol_range(http, cfg["dvol_currency"], max(m0, start), m1, res)
+            if not df.empty:
+                store.write_part(df, out, key)
+            print(f"dvol {res}s {key}: {len(df):,} bars")

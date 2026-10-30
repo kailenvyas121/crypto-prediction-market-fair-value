@@ -17,8 +17,8 @@ Every dataset is pulled by `make data` (or the individual `scripts/pull_*.py`) i
 | Binance BTCUSDT spot | `binance/spot_BTCUSDT_1m/{month}` | data.binance.vision | 1 min, with taker-buy volume | Flow features, cross-check |
 | Binance BTCUSDT perp | `binance/futures_um_BTCUSDT_1m/{month}` | data.binance.vision | 1 min | Perp lead and basis |
 | Binance BTCUSDT spot, 1s | `binance/spot_BTCUSDT_1s/{day}` | data.binance.vision | 1 s, last 60 days | Settlement-minute and in-window studies |
-| Binance perp funding | `binance/futures_um_BTCUSDT_fundingRate/{month}` | data.binance.vision | 8 h | State variable (vol and jump regime) |
-| Deribit DVOL | `deribit/dvol_BTC_60s/{month}` | Deribit `get_volatility_index_data` | 1 min | Implied-vol input |
+| Binance perp funding | `binance/futures_um_BTCUSDT_fundingRate/{month}` | data.binance.vision | 8 h, published monthly (ends at the last full month) | State variable (vol and jump regime) |
+| Deribit DVOL | `deribit/dvol_BTC_3600s/{month}`, `deribit/dvol_BTC_60s/{month}` | Deribit `get_volatility_index_data` | 1 h for the full window; 1 min for the last ~6 months (Deribit's retention) | Implied-vol input |
 | Macro calendar | `configs/events.csv` (in git) | federalreserve.gov | event | Event variance bumps |
 
 ## Schemas
@@ -35,6 +35,30 @@ Every dataset is pulled by `make data` (or the individual `scripts/pull_*.py`) i
 **Kalshi candles**: `ticker`, `ts` (end of the minute, UTC), `yes_bid`, `yes_ask` (end-of-minute quotes, in dollars), `yes_bid_low`, `yes_ask_high`, `last_price`, `vwap`, `volume`, `open_interest`.
 
 **Spot candles**: `ts` (bar open, UTC), `open`, `high`, `low`, `close`, `volume`. Binance adds `quote_volume`, `taker_buy_volume` and `trades`.
+
+## Pulled snapshot (2026-10-30)
+
+| Dataset | Rows | Range | Coverage | Size |
+|---|---|---|---|---|
+| Kalshi KXBTC15M markets | 30,005 | 2025-12-10 → 2026-10-27 | every listed window | 3 MB |
+| Kalshi KXBTCD markets | 1,154,378 strikes / 7,852 events (7,541 hourly, 311 daily) | 2025-11-01 → 2026-10-27 | every listed event | 28 MB |
+| Coinbase BTC-USD 1m | 569,408 | 2025-09-27 → 2026-10-27 | 99.9% | 24 MB |
+| Bitstamp BTC/USD 1m | 570,240 | 2025-09-27 → 2026-10-27 | 100% | 21 MB |
+| Binance spot / perp 1m | 607,680 each | 2025-09-01 → 2026-10-27 | 100% | 66 MB |
+| Binance spot 1s | 5,184,000 | 2026-08-29 → 2026-10-27 | 100% | 161 MB |
+| Binance funding | 1,185 | 2025-09-01 → 2026-09-30 | 100% | <1 MB |
+| Deribit DVOL 1h / 1m | 9,428 / 263,298 | 2025-09-27 / 2026-04-27 → 2026-10-27 | 99.9% | 4 MB |
+
+**First data-quality check: the USD proxy vs the official settlement.** We compare each source's last 1-minute close before every hourly close with Kalshi's 60-second BRTI settlement, over n = 7,816 hours:
+
+| Source | Median diff | Median abs diff | p95 abs diff |
+|---|---|---|---|
+| Coinbase | −0.57 bp | 1.40 bp | 6.2 bp |
+| Bitstamp | −0.45 bp | 1.09 bp | 5.6 bp |
+| Median(Coinbase, Bitstamp) | −0.52 bp | 1.18 bp | 5.8 bp |
+| Binance BTCUSDT | **+4.94 bp** | 5.50 bp | 15.0 bp |
+
+The free USD composite tracks the settlement index to about a basis point. Binance's USDT price carries a ~5 bp basis, which is why it serves only as a lead and flow feature, never as the pricing reference.
 
 ## Choices and caveats
 
