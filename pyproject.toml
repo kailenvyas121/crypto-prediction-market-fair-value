@@ -16,6 +16,7 @@ dependencies = [
     "certifi",
     "pyyaml>=6",
     "tqdm>=4.66",
+    "cryptography>=42",  # optional Kalshi request signing
 ]
 
 [project.optional-dependencies]
