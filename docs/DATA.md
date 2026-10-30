@@ -1,0 +1,46 @@
+# Data
+
+Every dataset is pulled by `make data` (or the individual `scripts/pull_*.py`) into `data/raw/`. Pulls are resumable: finished partitions are skipped, and long paginations checkpoint their cursor. No API keys are required. The study window and every source setting live in [`configs/data.yaml`](../configs/data.yaml).
+
+**Study window:** contract closes from 2025-11-01 up to 2026-10-28 (exclusive). Spot and vol history starts 35 days earlier as model warm-up.
+
+## Inventory
+
+| Dataset | Path (`data/raw/…`) | Source | Grain | Used for |
+|---|---|---|---|---|
+| Kalshi 15-min up/down markets | `kalshi/KXBTC15M/markets.parquet` | Kalshi `/historical/markets` + `/markets` | 1 row per contract | Labels (`result`), strike, settlement value |
+| Kalshi 15-min candles | `kalshi/KXBTC15M/candles/{day}` | `/historical/markets/{t}/candlesticks`, batch `/markets/candlesticks` | 1 min × contract | Market bid/ask to benchmark against |
+| Kalshi hourly/daily ladders | `kalshi/KXBTCD/markets.parquet` | same | 1 row per strike | Labels, strikes, hourly BRTI settlements |
+| Kalshi ladder candles | `kalshi/KXBTCD/candles/{day}` | same | 1 min × strike | Market bid/ask, implied vol |
+| Coinbase BTC-USD | `spot/coinbase_BTC-USD_1m/{day}` | Coinbase Advanced Trade public candles | 1 min | BRTI proxy (constituent), realized vol |
+| Bitstamp BTC/USD | `spot/bitstamp_btcusd_1m/{day}` | Bitstamp OHLC API | 1 min | BRTI proxy (constituent) |
+| Binance BTCUSDT spot | `binance/spot_BTCUSDT_1m/{month}` | data.binance.vision | 1 min, with taker-buy volume | Flow features, cross-check |
+| Binance BTCUSDT perp | `binance/futures_um_BTCUSDT_1m/{month}` | data.binance.vision | 1 min | Perp lead and basis |
+| Binance BTCUSDT spot, 1s | `binance/spot_BTCUSDT_1s/{day}` | data.binance.vision | 1 s, last 60 days | Settlement-minute and in-window studies |
+| Binance perp funding | `binance/futures_um_BTCUSDT_fundingRate/{month}` | data.binance.vision | 8 h | State variable (vol and jump regime) |
+| Deribit DVOL | `deribit/dvol_BTC_60s/{month}` | Deribit `get_volatility_index_data` | 1 min | Implied-vol input |
+| Macro calendar | `configs/events.csv` (in git) | federalreserve.gov | event | Event variance bumps |
+
+## Schemas
+
+**Kalshi markets**:
+- `ticker`, `event_ticker`, `open_time`, `close_time` (UTC)
+- `cadence`: fifteen_min, hourly or daily, from trading duration
+- `strike_type`: `greater` for ladders, `greater_or_equal` for 15M, where a tie pays YES
+- `floor_strike`, `cap_strike`
+- `expiration_value`: the official 60-second BRTI average at close
+- `result`: yes or no
+- `volume`, `open_interest`, `price_level_structure`, `status`
+
+**Kalshi candles**: `ticker`, `ts` (end of the minute, UTC), `yes_bid`, `yes_ask` (end-of-minute quotes, in dollars), `yes_bid_low`, `yes_ask_high`, `last_price`, `vwap`, `volume`, `open_interest`.
+
+**Spot candles**: `ts` (bar open, UTC), `open`, `high`, `low`, `close`, `volume`. Binance adds `quote_volume`, `taker_buy_volume` and `trades`.
+
+## Choices and caveats
+
+- **Settlement labels are exact.** `expiration_value` is Kalshi's own 60-second BRTI average, so labels need no reconstruction. Verified on 27,093 consecutive 15M windows: each window's strike equals the previous window's `expiration_value` to the cent.
+- **The hourly settlement series is a free, exact BRTI sample.** One `expiration_value` per hour, used to measure the basis of the Coinbase/Bitstamp proxy.
+- **Ladder strike selection has no look-ahead.** For candles, we keep strikes within ±1.5%·√(hours open), capped at 6%, of the **last hourly settlement known when the event opened**. That is about ±3σ of an hour's move. Strikes outside it trade at 0 or 1 and carry no information.
+- **BRTI itself is licensed.** Real-time and intra-minute BRTI is available through Kalshi's `cfbenchmarks_value` stream with an API key (entitlement still to be confirmed). Until then, the USD proxy is a composite of BRTI constituents (Coinbase and Bitstamp). Binance is **not** a constituent and is USDT-quoted. It is used only for lead and flow features.
+- **Rate limits.** Kalshi allows about 5 req/s unauthenticated. Setting `KALSHI_API_KEY_ID` and `KALSHI_PRIVATE_KEY_PATH` signs requests and raises the cap to the account tier (about 20 req/s), which shortens the candle pulls about 4×.
+- **Coverage gaps.** KXBTC15M starts 2025-12-10 (series launch). No contracts expire during the Thursday 3–5 AM ET maintenance pause. Kalshi's historical archive covers contracts settled before its cutoff (currently 2026-08-31); later contracts come from the live endpoints.

@@ -1,0 +1,13 @@
+# Scheduled macro releases (times US/Eastern). Used for event variance bumps in the vol model.
+# FOMC: statement day of each meeting, 2:00 PM ET. Source: federalreserve.gov/monetarypolicy/fomccalendars.htm (fetched 2026-10-30)
+# TODO: CPI and NFP (8:30 AM ET) dates. The BLS schedule blocks automated fetching; add them by hand from bls.gov/schedule.
+date,time_et,event
+2025-10-29,14:00,FOMC
+2025-12-10,14:00,FOMC
+2026-01-28,14:00,FOMC
+2026-03-18,14:00,FOMC
+2026-04-29,14:00,FOMC
+2026-06-17,14:00,FOMC
+2026-07-29,14:00,FOMC
+2026-09-16,14:00,FOMC
+2026-10-28,14:00,FOMC

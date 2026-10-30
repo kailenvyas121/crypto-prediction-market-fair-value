@@ -223,7 +223,10 @@ def build_markets(series: str, cadences: list[str]) -> pd.DataFrame:
     df = pd.concat([store.read_parts(sdir / "pages" / t) for t in ("hist", "live")], ignore_index=True)
     df = df.drop_duplicates("ticker", keep="last")
     df = df[(df["close_time"] >= start) & (df["close_time"] < end)].copy()
-    df["cadence"] = cadence((df["close_time"] - df["open_time"]).dt.total_seconds() / 3600)
+    # Classify by event, not by strike: Kalshi adds strikes to an event intraday, so the 5 PM ET
+    # daily event mixes day-old strikes with ones listed an hour before close.
+    event_open = df.groupby("event_ticker")["open_time"].transform("min")
+    df["cadence"] = cadence((df["close_time"] - event_open).dt.total_seconds() / 3600)
     df = df[df["cadence"].isin(cadences)].sort_values(["close_time", "floor_strike"]).reset_index(drop=True)
     store.write_part(df, sdir, "markets")
     return df
@@ -249,7 +252,8 @@ def pull_candles(client: KalshiClient, series: str, markets: pd.DataFrame, minut
         return [c for t, cs in got.items() for c in parse_candles(t, cs)]
 
     with ThreadPoolExecutor(workers) as ex:
-        for day, g in tqdm(todo, desc=f"{series} candles", unit="day"):
+        # Newest days first, so a partial pull already covers the most recent, most liquid period.
+        for day, g in tqdm(todo[::-1], desc=f"{series} candles", unit="day"):
             hist = g[g["close_time"] < client.cutoff]
             live = g[g["close_time"] >= client.cutoff]
             jobs = [ex.submit(hist_one, r) for r in hist.itertuples()]
@@ -279,6 +283,5 @@ def run(series_names: list[str] | None = None, *, stages=("markets", "candles"))
         if "candles" in stages:
             markets = pd.read_parquet(_series_dir(series) / "markets.parquet")
             if "strike_band_pct" in scfg:
-                markets = select_strikes(markets, reference_prices(markets[markets["cadence"] == "hourly"]),
-                                         scfg["strike_band_pct"])
+                markets = select_strikes(markets, reference_prices(markets), scfg["strike_band_pct"])
             pull_candles(client, series, markets, scfg["candle_minutes"], cfg["workers"])
