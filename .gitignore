@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Data cache (reproducible via `make data`)
+data/*
+!data/README.md
+
+# Secrets
+.env
+*.pem
+*.key
+
+# OS
+.DS_Store
