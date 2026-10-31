@@ -42,6 +42,8 @@ Every dataset is pulled by `make data` (or the individual `scripts/pull_*.py`) i
 |---|---|---|---|---|
 | Kalshi KXBTC15M markets | 30,005 | 2025-12-10 → 2026-10-27 | every listed window | 3 MB |
 | Kalshi KXBTCD markets | 1,154,378 strikes / 7,852 events (7,541 hourly, 311 daily) | 2025-11-01 → 2026-10-27 | every listed event | 28 MB |
+| Kalshi KXBTC15M candles | 447,675 contract-minutes | 2025-12-10 → 2026-10-27 | 29,901 of 30,005 contracts (99.7%) | 16 MB |
+| Kalshi KXBTCD candles | 15,850,060 strike-minutes | 2025-11-01 → 2026-10-27 | 143,206 of 143,304 selected strikes (99.9%) | 107 MB |
 | Coinbase BTC-USD 1m | 569,408 | 2025-09-27 → 2026-10-27 | 99.9% | 24 MB |
 | Bitstamp BTC/USD 1m | 570,240 | 2025-09-27 → 2026-10-27 | 100% | 21 MB |
 | Binance spot / perp 1m | 607,680 each | 2025-09-01 → 2026-10-27 | 100% | 66 MB |

@@ -8,7 +8,7 @@ A research prototype for pricing short-dated crypto event contracts in real time
 | Stage | State |
 |---|---|
 | Research and design | done: [`docs/RESEARCH_OUTLINE.md`](docs/RESEARCH_OUTLINE.md) |
-| Data pipeline | built; full pull running: [`docs/DATA.md`](docs/DATA.md) |
+| Data pipeline | done; full pull complete: [`docs/DATA.md`](docs/DATA.md) |
 | Fair-value engine (v0–v4) | planned |
 | Calibration study vs Kalshi mid | planned |
 | Quoting and risk design | planned |
