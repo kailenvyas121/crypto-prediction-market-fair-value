@@ -9,10 +9,10 @@ A research prototype for pricing short-dated crypto event contracts in real time
 |---|---|
 | Research and design | done: [`docs/RESEARCH_OUTLINE.md`](docs/RESEARCH_OUTLINE.md) |
 | Data pipeline | done; full pull complete: [`docs/DATA.md`](docs/DATA.md) |
-| Fair-value engine (v0–v4) | planned |
-| Calibration study vs Kalshi mid | planned |
-| Quoting and risk design | planned |
-| Memo | planned |
+| Fair-value engine (v0–v4) | done: `src/pinpricer/model/` |
+| Calibration study vs Kalshi mid | done: `scripts/calibrate.py` → `docs/results/calibration.json` |
+| Quoting and risk design | designed (memo); not simulated |
+| Memo | done: [`docs/memo.html`](docs/memo.html) |
 
 ## Quickstart
 ```bash
