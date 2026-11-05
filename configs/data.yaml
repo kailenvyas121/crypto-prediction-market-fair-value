@@ -13,7 +13,7 @@ kalshi:
   trades_sample:
     start: "2026-05-01"
     seed: 7
-    strike_band_pct: 1.0      # ladder strikes within ±1% of settlement (where the volume is)
+    strike_band_pct: 0.5      # ladder strikes within ±0.5%·sqrt(hours open) of the price known at the open
     events: {fifteen_min: 250, hourly: 120, daily: 20}
   series:
     KXBTCD:                   # hourly / daily / weekly above-below ladders

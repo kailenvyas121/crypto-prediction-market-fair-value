@@ -1,0 +1,27 @@
+{
+  "settlements": 7816,
+  "coinbase": {
+    "n": 7810,
+    "median_diff_bp": -0.5666220170295806,
+    "median_abs_bp": 1.3974549834914627,
+    "p95_abs_bp": 6.225426969580865
+  },
+  "bitstamp": {
+    "n": 7816,
+    "median_diff_bp": -0.4522677338101966,
+    "median_abs_bp": 1.0884827636536158,
+    "p95_abs_bp": 5.622222822630198
+  },
+  "binance_usdt": {
+    "n": 7816,
+    "median_diff_bp": 4.9437408378247065,
+    "median_abs_bp": 5.499526892350364,
+    "p95_abs_bp": 15.023717121609387
+  },
+  "median_coinbase_bitstamp": {
+    "n": 7816,
+    "median_diff_bp": -0.5189281761566553,
+    "median_abs_bp": 1.1784830882247288,
+    "p95_abs_bp": 5.753536294108849
+  }
+}

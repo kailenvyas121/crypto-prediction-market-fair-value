@@ -95,7 +95,7 @@ Each phase ends with a measured gate. The system moves on only when the number h
 
 | Phase | What gets built | Gate to move on |
 |---|---|---|
-| **0. Research prototype** *(this repo, done)* | Data pipeline, pricing model, out-of-sample studies | Model ties the Kalshi mid on hourly and beats public approaches ✓ |
+| **0. Research prototype** *(this repo, done)* | Data pipeline, pricing model, out-of-sample studies | Model within 0.3 thousandths of Brier of the Kalshi mid on hourly, beats public approaches, and sorts maker fills on hourly ✓ |
 | **1. Live shadow** | Feeds, BRTI replica, pricer running live with no orders, tick recording | Replica within 0.5 bp of Kalshi's BRTI stream; live model-vs-mid matches the backtest |
 | **2. Hourly and daily quoting** | Quote engine, gateways, risk book, kill switches, perp hedger, news defense v1 | Positive spread capture net of markouts over enough expiries to be significant |
 | **3. 15-minute quoting** | Sub-second variance read, perp-lead pulls, in-window averaging math, low-latency placement | 15-minute gap to mid under 1¢ in shadow; pick-off losses below spread capture in replay |
@@ -104,7 +104,7 @@ Each phase ends with a measured gate. The system moves on only when the number h
 | **6. Scale** | Bid for Kalshi liquidity-provider slots (2 on crypto 15-minute, 1 on hourly/daily, auctioned [Source]); cross-venue netting | LP economics clear the auction price |
 
 **Why this order:**
-- Hourly and daily markets come first because the model already ties the market there, the latency bar is lower, and retail flow concentrates there.
+- Hourly and daily markets come first: the model is closest to the market there, the latency bar is lower, and on hourly the model's favorable fills earn about 2.5× the average maker edge.
 - 15-minute markets wait for the sub-second index and volatility read, because that is where the model currently trails.
 
 ---

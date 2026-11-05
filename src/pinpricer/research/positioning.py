@@ -27,6 +27,7 @@ def _hourly_features(px: pd.Series, vm: VolModel) -> pd.DataFrame:
     perp = store.read_parts(RAW_DIR / "binance" / "futures_um_BTCUSDT_1m").set_index("ts")["close"]
     spot = store.read_parts(RAW_DIR / "binance" / "spot_BTCUSDT_1m").set_index("ts")["close"]
     basis = (1e4 * np.log(perp / spot)).rolling("60min").mean()
+    basis.index = basis.index + pd.Timedelta(minutes=1)  # Binance bars are keyed by open; known at close
 
     hours = px.index[(px.index.minute == 0) & (px.index >= met.index.min() + pd.Timedelta(days=8))]
     hours = hours[hours <= min(met.index.max(), fund.index.max(), px.index[-1] - pd.Timedelta(hours=25))]
@@ -82,7 +83,8 @@ def run() -> dict:
     f = _hourly_features(px, vm)
     tr, te = f[f.train], f[~f.train]
     z = lambda s: (s - tr[s.name].mean()) / tr[s.name].std()
-    res: dict = {"hours": {"train": len(tr), "test": len(te)}, "test_from": str(TRAIN_END.date())}
+    res: dict = {"hours": {"train": len(tr), "test": len(te)}, "test_from": str(TRAIN_END.date()),
+                 "test_to": str(te.index.max())}
 
     # 1. Direction. Each target is sampled every hour, so 4h and 24h windows overlap; the
     #    out-of-sample R² is still honest, the t-stats in the OI table are not used for these.
@@ -111,7 +113,8 @@ def run() -> dict:
     # 3. Tails: standardized next-4h returns by long-crowding tercile (funding + OI build + top L/S)
     crowd = z(f["funding_bp"]) + z(f["d_oi_24h"]) + z(f["top_ls"])
     f = f.assign(crowd=crowd, zr=f["fwd_4h"] / f["sd_4h_bp"])
-    f["crowd_bin"] = pd.qcut(f["crowd"], 3, labels=["least crowded long", "middle", "most crowded long"])
+    cuts = f.loc[f.train, "crowd"].quantile([1 / 3, 2 / 3]).to_numpy()  # tercile edges from training hours
+    f["crowd_bin"] = pd.cut(f["crowd"], [-np.inf, *cuts, np.inf], labels=["least crowded long", "middle", "most crowded long"])
     g = f[~f.train].groupby("crowd_bin", observed=True)["zr"]
     res["tails_4h_by_long_crowding"] = {
         str(k): {"n": len(v), "mean": float(v.mean()), "p_down_2sd": float((v < -2).mean()),

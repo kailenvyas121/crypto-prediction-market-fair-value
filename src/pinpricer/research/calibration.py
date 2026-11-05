@@ -34,6 +34,7 @@ MODELS = {  # name: (vol forecaster, tails, settlement averaging)
 BEST = "v4 v3 + Student-t tails"
 OPTIONS = "baseline: options-implied (DVOL Black-Scholes digital)"
 BINANCE = "baseline: Binance price, EWMA vol, normal"
+BINANCE_BC = "variant: Binance price minus trailing USDT basis, v4 model"
 
 
 def load_rows(series: str, px: pd.Series) -> pd.DataFrame:
@@ -99,9 +100,14 @@ def logloss(p, y):
     return float(-np.mean(y * np.log(p) + (1 - y) * np.log(1 - p)))
 
 
-def event_bootstrap(d: pd.DataFrame, a: str, b: str, n=2000) -> tuple[float, float]:
-    """95% CI of Brier(a) − Brier(b), resampling whole events (the statistical unit is the expiry)."""
-    g = d.assign(da=(d[a] - d["y"]) ** 2 - (d[b] - d["y"]) ** 2).groupby("event_ticker")["da"].agg(["sum", "count"])
+def day_bootstrap(d: pd.DataFrame, a: str, b: str, n=2000) -> tuple[float, float]:
+    """95% CI of Brier(a) − Brier(b), resampling whole UTC days of contract closes.
+
+    Days, not events, are the resampling unit: hourly and 15-minute contracts closing on the same
+    day share one BTC price path, so treating them as independent would make intervals too narrow.
+    """
+    day = d["close_time"].dt.floor("D")
+    g = d.assign(da=(d[a] - d["y"]) ** 2 - (d[b] - d["y"]) ** 2, day=day).groupby("day")["da"].agg(["sum", "count"])
     s, c = g["sum"].to_numpy(), g["count"].to_numpy()
     idx = RNG.integers(0, len(g), size=(n, len(g)))
     stats_ = s[idx].sum(1) / c[idx].sum(1)
@@ -135,8 +141,12 @@ def run() -> dict:
     bn = store.read_parts(RAW_DIR / "binance" / "spot_BTCUSDT_1m").set_index("ts")["close"]
     bn = bn[~bn.index.duplicated()].sort_index()
     bn.index = bn.index + pd.Timedelta(minutes=1)  # keyed by bar end, like the proxy
-    rows[BINANCE], _ = price(rows.assign(spot=bn.reindex(px.index).ffill().to_numpy()[rows["t_pos"]]),
-                             vm, "ewma", False, False, nu)
+    bn_px = bn.reindex(px.index).ffill()
+    rows[BINANCE], _ = price(rows.assign(spot=bn_px.to_numpy()[rows["t_pos"]]), vm, "ewma", False, False, nu)
+    # Fairer Binance version: remove a trailing 24h median USDT basis, then the full v4 model
+    gap = np.log(bn_px / px).rolling(1440, min_periods=720).median().to_numpy()
+    spot_bc = bn_px.to_numpy()[rows["t_pos"]] * np.exp(-gap[rows["t_pos"]] + basis)
+    rows[BINANCE_BC], _ = price(rows.assign(spot=spot_bc), vm, "har_iv", True, True, nu)
     for name, (kind, t, avg) in MODELS.items():
         rows[name], var = price(rows, vm, kind, t, avg, nu)
         if name == BEST:
@@ -148,17 +158,17 @@ def run() -> dict:
                        "test_events": int(test[test.cadence == c].event_ticker.nunique())}
                    for c in ["fifteen_min", "hourly", "daily"]}
 
-    cols = [BINANCE, *MODELS, "v4 without basis adj.", "mid"]
+    cols = [BINANCE, BINANCE_BC, *MODELS, "v4 without basis adj.", "mid"]
     res["overall"], res["by_tau"], res["by_distance"], res["vs_mid"], res["blend"], res["vol_scale"] = {}, {}, {}, {}, {}, {}
     for cad in ["fifteen_min", "hourly", "daily"]:
         d = test[test.cadence == cad]
         res["overall"][cad] = {c: {"brier": brier(d[c], d.y), "logloss": logloss(d[c], d.y),
                                    "mae_vs_mid_cents": float(100 * np.mean(np.abs(d[c] - d["mid"])))} for c in cols}
         res["vs_mid"][cad] = {"brier_best_minus_mid": brier(d[BEST], d.y) - brier(d["mid"], d.y),
-                              "ci95": event_bootstrap(d, BEST, "mid")}
+                              "ci95": day_bootstrap(d, BEST, "mid")}
         res.setdefault("vs_baselines", {})[cad] = {
-            b: {"brier_best_minus_baseline": brier(d[BEST], d.y) - brier(d[b], d.y), "ci95": event_bootstrap(d, BEST, b)}
-            for b in (BINANCE, OPTIONS)}
+            b: {"brier_best_minus_baseline": brier(d[BEST], d.y) - brier(d[b], d.y), "ci95": day_bootstrap(d, BEST, b)}
+            for b in (BINANCE, BINANCE_BC, OPTIONS)}
         bt = tau_bucket(cad, d["tau"])
         res["by_tau"][cad] = {b: {"n": len(g), "model": brier(g[BEST], g.y), "mid": brier(g["mid"], g.y),
                                   "mae_cents": float(100 * np.mean(np.abs(g[BEST] - g["mid"]))),
@@ -176,7 +186,8 @@ def run() -> dict:
         x, yy = (tr[BEST] - tr["mid"]).to_numpy(), (tr.y - tr["mid"]).to_numpy()
         w = float(x @ yy / (x @ x))
         blend = np.clip(d["mid"] + w * (d[BEST] - d["mid"]), 0, 1)
-        res["blend"][cad] = {"w_model": w, "brier_blend": brier(blend, d.y), "brier_mid": brier(d["mid"], d.y)}
+        res["blend"][cad] = {"w_model": w, "brier_blend": brier(blend, d.y), "brier_mid": brier(d["mid"], d.y),
+                             "ci95_blend_minus_mid": day_bootstrap(d.assign(blend=blend), "blend", "mid")}
         # vol scale the market implies vs what outcomes reward
         s = d.sample(min(len(d), 300_000), random_state=0)
         grid = np.round(np.arange(0.6, 1.61, 0.02), 2)

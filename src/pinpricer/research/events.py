@@ -28,7 +28,7 @@ def run() -> dict:
     ev = load_events()
     ev = ev[(ev.ts > px.index[0] + pd.Timedelta(days=8)) & (ev.ts < px.index[-1] - pd.Timedelta(hours=2))].copy()
     c = np.concatenate([[0.0], np.cumsum(vm.r2)])
-    pos = px.index.get_indexer(ev.ts) - 1  # forecast made one minute before the release
+    pos = px.index.get_indexer(ev.ts)  # forecast made at the release time; windows start with the release minute
     win = {"5m": (0, 5), "60m": (0, 60), "after_5m": (5, 60)}
 
     def ratios(p0: np.ndarray) -> dict[str, np.ndarray]:
@@ -50,7 +50,7 @@ def run() -> dict:
     ctrl = pd.DataFrame([{"event": r.event, "ts": r.ts + pd.Timedelta(days=k), "train": r.train}
                          for r in ev.itertuples() for k in (-14, -7, 7, 14)
                          if r.ts + pd.Timedelta(days=k) not in ev_ts and lo_ok < r.ts + pd.Timedelta(days=k) < hi_ok])
-    for k, v in ratios(px.index.get_indexer(ctrl.ts) - 1).items():
+    for k, v in ratios(px.index.get_indexer(ctrl.ts)).items():
         ctrl[f"ratio_{k}"] = v
 
     def bump(e: pd.DataFrame, cc: pd.DataFrame, k: str) -> float:
@@ -97,6 +97,6 @@ def run() -> dict:
         "brier_v4": cal.brier(p0, g.y), "brier_v4_plus_bump": cal.brier(p1, g.y), "brier_mid": cal.brier(g.mid, g.y),
         "mae_vs_mid_cents_v4": float(100 * np.mean(np.abs(p0 - g.mid))),
         "mae_vs_mid_cents_bump": float(100 * np.mean(np.abs(p1 - g.mid))),
-        "ci95_bump_minus_mid": cal.event_bootstrap(g.assign(p_bump=p1), "p_bump", "mid"),
-        "ci95_bump_minus_v4": cal.event_bootstrap(g.assign(p_bump=p1, p_v4=p0), "p_bump", "p_v4")}
+        "ci95_bump_minus_mid": cal.day_bootstrap(g.assign(p_bump=p1), "p_bump", "mid"),
+        "ci95_bump_minus_v4": cal.day_bootstrap(g.assign(p_bump=p1, p_v4=p0), "p_bump", "p_v4")}
     return res

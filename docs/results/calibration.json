@@ -99,6 +99,11 @@
         "logloss": 0.8146756382932839,
         "mae_vs_mid_cents": 20.900218279947158
       },
+      "variant: Binance price minus trailing USDT basis, v4 model": {
+        "brier": 0.16893190883307563,
+        "logloss": 0.5049907781890397,
+        "mae_vs_mid_cents": 5.593146819167743
+      },
       "baseline: options-implied (DVOL Black-Scholes digital)": {
         "brier": 0.17569001656534486,
         "logloss": 0.5268542955616461,
@@ -151,6 +156,11 @@
         "logloss": 0.3427477502132179,
         "mae_vs_mid_cents": 6.521547337675539
       },
+      "variant: Binance price minus trailing USDT basis, v4 model": {
+        "brier": 0.09243091898517615,
+        "logloss": 0.30192678885675706,
+        "mae_vs_mid_cents": 2.3955354551955534
+      },
       "baseline: options-implied (DVOL Black-Scholes digital)": {
         "brier": 0.099469833884906,
         "logloss": 0.335847853157752,
@@ -202,6 +212,11 @@
         "brier": 0.09492393723296437,
         "logloss": 0.3176623366670811,
         "mae_vs_mid_cents": 4.028087886776761
+      },
+      "variant: Binance price minus trailing USDT basis, v4 model": {
+        "brier": 0.09243353055150617,
+        "logloss": 0.30101321043316676,
+        "mae_vs_mid_cents": 1.89909857441776
       },
       "baseline: options-implied (DVOL Black-Scholes digital)": {
         "brier": 0.09624671119230403,
@@ -481,22 +496,22 @@
     "fifteen_min": {
       "brier_best_minus_mid": 0.0030314773882259005,
       "ci95": [
-        0.0024342986333921995,
-        0.0036547676764136223
+        0.0023881301126566627,
+        0.0037493492545975127
       ]
     },
     "hourly": {
       "brier_best_minus_mid": 0.0003184995623489728,
       "ci95": [
-        7.490562411309591e-05,
-        0.0005564462959122774
+        7.656917087916167e-05,
+        0.0005547472378498775
       ]
     },
     "daily": {
       "brier_best_minus_mid": -0.0005404396189318955,
       "ci95": [
-        -0.0012241199463586116,
-        0.000156216731780304
+        -0.001210711261182295,
+        0.00012973287056879405
       ]
     }
   },
@@ -504,17 +519,29 @@
     "fifteen_min": {
       "w_model": 0.26490470256325865,
       "brier_blend": 0.16231518334475675,
-      "brier_mid": 0.16221359570378843
+      "brier_mid": 0.16221359570378843,
+      "ci95_blend_minus_mid": [
+        -5.08074052819657e-05,
+        0.00025111356160016505
+      ]
     },
     "hourly": {
       "w_model": 0.5125239047950678,
       "brier_blend": 0.09191379519537766,
-      "brier_mid": 0.09199898711473282
+      "brier_mid": 0.09199898711473282,
+      "ci95_blend_minus_mid": [
+        -0.00020983134026098123,
+        3.939632679860404e-05
+      ]
     },
     "daily": {
       "w_model": 0.8038311758384534,
       "brier_blend": 0.0924568875522223,
-      "brier_mid": 0.0929974042434927
+      "brier_mid": 0.0929974042434927,
+      "ci95_blend_minus_mid": [
+        -0.001114822318681538,
+        3.3359717700728014e-05
+      ]
     }
   },
   "vol_scale": {
@@ -536,15 +563,22 @@
       "baseline: Binance price, EWMA vol, normal": {
         "brier_best_minus_baseline": -0.07949263033406981,
         "ci95": [
-          -0.08440693580292716,
-          -0.07480331449949618
+          -0.09236887925273925,
+          -0.06622942716880864
+        ]
+      },
+      "variant: Binance price minus trailing USDT basis, v4 model": {
+        "brier_best_minus_baseline": -0.003686835741061295,
+        "ci95": [
+          -0.004903989734977239,
+          -0.0025008068075100852
         ]
       },
       "baseline: options-implied (DVOL Black-Scholes digital)": {
         "brier_best_minus_baseline": -0.010444943473330526,
         "ci95": [
-          -0.011364666394508316,
-          -0.009526820616617174
+          -0.012364471117470348,
+          -0.008707745690499466
         ]
       }
     },
@@ -552,15 +586,22 @@
       "baseline: Binance price, EWMA vol, normal": {
         "brier_best_minus_baseline": -0.011850943471950343,
         "ci95": [
-          -0.01315275912200568,
-          -0.010618099592399937
+          -0.014082679019018125,
+          -0.009691695971506995
+        ]
+      },
+      "variant: Binance price minus trailing USDT basis, v4 model": {
+        "brier_best_minus_baseline": -0.00011343230809435223,
+        "ci95": [
+          -0.0003187882633755959,
+          8.045391445481914e-05
         ]
       },
       "baseline: options-implied (DVOL Black-Scholes digital)": {
         "brier_best_minus_baseline": -0.007152347207824206,
         "ci95": [
-          -0.007791941972070735,
-          -0.006504624726889108
+          -0.008584628744010604,
+          -0.0058420273603409425
         ]
       }
     },
@@ -568,15 +609,22 @@
       "baseline: Binance price, EWMA vol, normal": {
         "brier_best_minus_baseline": -0.0024669726084035615,
         "ci95": [
-          -0.004080594639837618,
-          -0.0007032316305683358
+          -0.003992882102387841,
+          -0.000771292133548465
+        ]
+      },
+      "variant: Binance price minus trailing USDT basis, v4 model": {
+        "brier_best_minus_baseline": 2.343407305463452e-05,
+        "ci95": [
+          -8.435425060625305e-05,
+          0.0001322384187088462
         ]
       },
       "baseline: options-implied (DVOL Black-Scholes digital)": {
         "brier_best_minus_baseline": -0.003789746567743224,
         "ci95": [
-          -0.00584246640733426,
-          -0.001871617249140536
+          -0.005891283378421834,
+          -0.0019302758608121563
         ]
       }
     }

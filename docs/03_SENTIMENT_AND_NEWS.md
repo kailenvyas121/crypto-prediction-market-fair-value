@@ -5,7 +5,7 @@ Crypto is unusual: its main newswire is a social network. Exchange listings, hac
 | Use | Horizon | What it does | Evidence |
 |---|---|---|---|
 | **A. News defense** | Seconds | Detect market-moving posts and pull or widen quotes before the price moves | Strong logic plus documented cases; latency value is quantified below |
-| **B. Crowd-error edge** | Hours to months | Lean against the side the crowd overpays, sized by sentiment | Longshot overpricing confirmed on 6,470 Kalshi events [Tested]; the sentiment link is suggestive, not established |
+| **B. Crowd-error edge** | Hours to months | Lean against the side the crowd overpays, sized by sentiment | Longshot overpricing confirmed across 6,475 Kalshi events in 44 weeks [Tested]; the sentiment link is suggestive, not established |
 | **C. Direction** | Days to weeks | Tilt fair value with sentiment | Not supported in our data at hourly to weekly horizons [Tested]; academic evidence is mixed |
 
 ---
@@ -21,7 +21,8 @@ A market maker's main loss is being **picked off**: a resting quote becomes stal
 | 1 day | 0.15¢ |
 | 1 hour | 0.75¢ |
 | 15 minutes | 1.5¢ |
-| Final minute | 5.8¢ |
+| Final minute, point print | 5.8¢ |
+| Start of the 60-second averaging window | ~10¢ |
 
 A headline that moves BTC 1% (100 bp) in a minute moves every near-the-money 15-minute contract by tens of cents. A maker who pulls quotes **seconds before** the move, because the post was read and classified first, avoids most of that loss. One who learns from the price itself pays for it.
 
@@ -50,7 +51,7 @@ flowchart LR
   - Real-time access requires an X enterprise or streaming agreement. Pricing is negotiated and has changed repeatedly; public reports put enterprise access in the tens of thousands of dollars per month. Licensed social-data vendors are the alternative.
 - **Classification.** A fast rules layer (watch-listed accounts plus keywords such as "hack", "exploit", "approve", "tariff", "halt") runs in parallel with an LLM that labels asset, direction, severity and credibility. Rules trigger defense instantly; the LLM refines the decision within seconds.
 - **Action.** Defense first: pull or widen, cut size, and raise the variance and jump-intensity inputs ([`01_PRICING_GUIDE.md`](01_PRICING_GUIDE.md) §1.6). Re-enter as realized volatility normalizes.
-- **Scheduled releases are already in the model.** CPI, payrolls and FOMC times are known. The first 5 minutes after a release carry 7.5× the forecast variance (median, relative to non-release days) [Tested], and quotes widen before the release.
+- **Scheduled releases are already in the model.** CPI, payrolls and FOMC times are known. The first 5 minutes after a release carry about 6.3× the forecast variance (pooled, training releases, relative to non-release days) [Tested], and quotes widen before the release.
 
 **What this edge is and isn't.** It is a loss-avoidance system, and it pays in every tenor. It is not a directional trading strategy. Racing news-trading bots to take liquidity is a crowded, low-margin game. A maker who simply isn't standing in front of the move keeps the spread it already earns.
 
@@ -67,12 +68,12 @@ In a 15-minute market, mispricing is corrected in seconds. Longer-dated markets 
 
 ### What our data shows [Tested]
 
-Cheap contracts (model and market both under 30% for that side) on Kalshi hourly and daily ladders, Nov 2025–Oct 2026:
+Cheap contracts (model under 30% and market under 50% for that side) on Kalshi hourly and daily ladders, Nov 2025–Oct 2026. Intervals resample whole weeks (44), because contracts in the same week share one price path:
 
 | Side | Contract-minutes | Events | Crowd overpays by (mid − outcome) | 95% CI (by event) |
 |---|---|---|---|---|
-| Upside longshots (BTC must rise) | 657,696 | 6,470 | **2.0¢** | 0.6 to 3.3¢ |
-| Downside longshots (BTC must fall) | 665,270 | 6,470 | **1.9¢** | 0.5 to 3.2¢ |
+| Upside longshots (BTC must rise) | 657,696 | 6,470 | **2.0¢** | 0.5 to 3.5¢ |
+| Downside longshots (BTC must fall) | 665,270 | 6,460 | **1.9¢** | 0.1 to 3.6¢ |
 
 **Cheap contracts are overpriced by about 2¢ on both sides.** That is the edge a maker earns by selling longshots, provided its fair value is accurate. Our Student-t model prices these contracts within about 1–1.5¢ of what they actually paid, while a normal distribution overprices them by 4–5¢ [Tested].
 
@@ -80,14 +81,14 @@ Cheap contracts (model and market both under 30% for that side) on Kalshi hourly
 
 | Condition (previous day) | Downside longshots overpriced by | Upside longshots overpriced by |
 |---|---|---|
-| BTC's last 7 days: weakest third | −0.2¢ (−3.5 to 2.7) | 1.6¢ (−1.1 to 3.9) |
-| BTC's last 7 days: strongest third | **3.6¢ (2.0 to 5.1)** | 2.3¢ (0.2 to 4.1) |
-| Retail attention (Wikipedia pageviews): lowest third | 3.1¢ (1.4 to 4.7) | 2.4¢ (0.3 to 4.3) |
-| Retail attention: highest third | 0.0¢ (−3.0 to 2.6) | 1.4¢ (−0.8 to 3.6) |
+| BTC's last 7 days: weakest third | −0.2¢ (−3.9 to 3.9) | 1.6¢ (−1.5 to 3.9) |
+| BTC's last 7 days: strongest third | **3.6¢ (2.2 to 5.0)** | 2.3¢ (1.1 to 3.9) |
+| Retail attention (Wikipedia pageviews): lowest third | 3.1¢ (1.6 to 4.5) | 2.4¢ (0.1 to 4.5) |
+| Retail attention: highest third | 0.0¢ (−3.3 to 3.1) | 1.4¢ (−0.9 to 3.3) |
 
 - **After strong rallies, downside longshots (crash protection) are most overpriced.** After declines they are fairly priced.
 - **When retail attention spikes, the overpricing shrinks.** One reading: high attention comes with high realized volatility, so longshots pay off more often.
-- **The patterns are suggestive, not established.** The confidence intervals of the extreme groups overlap, and the groups were cut on the full sample, so this is descriptive.
+- **The patterns are suggestive, not established.** The extreme groups' intervals overlap, each group is effectively about 15 independent weeks, and the groups were cut on the full sample, so this is descriptive.
 
 **How to use it:**
 - **Today:** sell longshots on both sides, sized by the model's edge and capped by the ladder-sweep limit ([`04_MARKET_MAKING.md`](04_MARKET_MAKING.md)).

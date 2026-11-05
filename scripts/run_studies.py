@@ -11,7 +11,7 @@ import time
 
 from pinpricer.config import ROOT
 
-STUDIES = ["calibration", "index_gap", "lead", "positioning", "beta", "events", "sentiment", "markouts"]
+STUDIES = ["proxy", "calibration", "index_gap", "lead", "positioning", "beta", "events", "sentiment", "markouts"]
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()

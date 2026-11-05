@@ -282,17 +282,29 @@ def parse_trades(trades: list[dict]) -> pd.DataFrame:
 
 def trade_sample(markets: pd.DataFrame, cadence_: str, n_events: int, band_pct: float, seed: int,
                  start: pd.Timestamp) -> pd.DataFrame:
-    """Random events of one cadence closing after `start`; strikes within ±band_pct of the settlement.
+    """Random events of one cadence closing after `start`, with ladder strikes chosen at the open.
 
-    Strikes are chosen by distance to settlement only to bound the pull (far strikes barely trade);
-    the markout study conditions on trade-time information, so this does not leak into pricing.
+    Strikes are kept within ±band_pct·sqrt(hours open) of the last settlement known when the event
+    opened (`select_strikes`), so the sample never depends on where BTC finished. Every 15-minute
+    window has a single contract, which is always kept.
     """
     m = markets[(markets["cadence"] == cadence_) & (markets["close_time"] >= start)].dropna(subset=["floor_strike"])
     events = m["event_ticker"].drop_duplicates().sample(n=min(n_events, m["event_ticker"].nunique()),
                                                          random_state=seed)
     m = m[m["event_ticker"].isin(events)]
-    near = (m["floor_strike"] / m["expiration_value"] - 1).abs() <= band_pct / 100
-    return m[near | (m["cadence"] == "fifteen_min")]
+    if cadence_ == "fifteen_min":
+        return m
+    return select_strikes(m, reference_prices(markets), band_pct)
+
+
+def sample_for_study(series: str) -> pd.DataFrame:
+    """The configured fill sample for one series (the markets whose trades the markout study uses)."""
+    cfg = load_config()["kalshi"]
+    tcfg = cfg["trades_sample"]
+    markets = pd.read_parquet(_series_dir(series) / "markets.parquet")
+    start = pd.Timestamp(tcfg["start"], tz="UTC")
+    return pd.concat([trade_sample(markets, c, n, tcfg["strike_band_pct"], tcfg["seed"], start)
+                      for c, n in tcfg["events"].items() if c in cfg["series"][series]["cadences"]])
 
 
 def pull_trades(client: KalshiClient, series: str, sample: pd.DataFrame, workers: int) -> None:
@@ -316,13 +328,9 @@ def pull_trades(client: KalshiClient, series: str, sample: pd.DataFrame, workers
 
 def run_trades(series_names: list[str] | None = None) -> None:
     cfg = load_config()["kalshi"]
-    tcfg = cfg["trades_sample"]
     client = KalshiClient(cfg["base_url"], rate=cfg.get("requests_per_second"))
-    start = pd.Timestamp(tcfg["start"], tz="UTC")
     for series in series_names or list(cfg["series"]):
-        markets = pd.read_parquet(_series_dir(series) / "markets.parquet")
-        sample = pd.concat([trade_sample(markets, c, n, tcfg["strike_band_pct"], tcfg["seed"], start)
-                            for c, n in tcfg["events"].items() if c in cfg["series"][series]["cadences"]])
+        sample = sample_for_study(series)
         print(f"{series}: {len(sample):,} markets in the trade sample")
         pull_trades(client, series, sample, cfg["workers"])
 

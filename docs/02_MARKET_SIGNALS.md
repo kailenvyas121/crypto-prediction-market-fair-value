@@ -32,7 +32,7 @@ A prediction contract is a derivative of the spot index, so everything happening
 | **Coinbase premium** | Coinbase USD price vs offshore USDT price | US-specific demand | Slow regime indicator | Not tested |
 | **ETF flows, stablecoin supply, exchange on-chain flows** | Daily capital flows | Slow-moving demand | Long-dated crowd and regime models | Not tested; see [`03_SENTIMENT_AND_NEWS.md`](03_SENTIMENT_AND_NEWS.md) |
 | **Alt-coin beta** | ETH and SOL sensitivity to BTC | How the complex co-moves | Price ETH and SOL contracts from BTC vol × beta, plus a residual | ETH β 1.2 (R² 0.74–0.82); SOL β 1.25 (R² 0.65–0.76) [Tested] |
-| **Macro calendar** | CPI, payrolls, FOMC times | Scheduled variance spikes | Event variance bumps | First 5 minutes run 7.5× forecast variance (median, relative to non-release days) [Tested] |
+| **Macro calendar** | CPI, payrolls, FOMC times | Scheduled variance spikes | Event variance bumps | First 5 minutes carry about 6.3× forecast variance (pooled, fit on training releases, relative to non-release days) [Tested] |
 
 ---
 
@@ -40,7 +40,7 @@ A prediction contract is a derivative of the spot index, so everything happening
 
 The contract's fair value is built from four properties of the spot index:
 
-1. **Level.** The distance to the strike. It must be measured on the settlement index. Pricing Kalshi's 15-minute market off Binance's USDT price (about +5 bp away from BRTI) missed the market by 21¢ on average [Tested].
+1. **Level.** The distance to the strike. It must be measured on the settlement index. Pricing Kalshi's 15-minute market naively off Binance's USDT price (median +4.9 bp away from BRTI at hourly settlements) missed the market by 21¢ on average [Tested].
 2. **Volatility.** How fast the level moves. BTC runs about 45% annualized; ETH 61% and SOL 68% in the same period [Tested].
 3. **Seasonality.** Moves cluster in US hours and around data releases. Weekends are quiet.
 4. **Tails.** Big moves are far more common than a normal distribution implies. Excess kurtosis of standardized 15-minute returns is about 10 [Tested].
@@ -86,13 +86,13 @@ This is consistent with research finding that crypto derivatives venues dominate
 
 None of these is statistically different from zero. **The OI story is a good description of what just happened, not a forecast.**
 
-Other tests on the same data, all fit before May 2026 and scored on May–September 2026 [Tested]:
+Other tests on the same data, all fit before May 2026 and scored on May–October 2026 (4,269 test hours) [Tested]:
 
 | Question | Result |
 |---|---|
 | Do OI, funding, basis, long/short ratios or taker flow predict BTC's next 1h, 4h or 24h return? | No. Out-of-sample R² is −0.4% (1h), −2.0% (4h) and −10.8% (24h). Worse than predicting zero |
 | Do they improve the next-hour volatility forecast beyond realized vol, time of week and DVOL? | No. The base forecast explains 63% of next-hour log variance; positioning adds nothing (−4% R² on the residual) |
-| Is the downside tail fatter when longs are crowded (high funding, rising OI, top traders long)? | Not in this sample. In the most crowded third, 4-hour drops beyond 2σ happened 1.7% of the time, vs 2.5% in the least crowded third. Large up-moves were *more* common (3.0% vs 1.7%) |
+| Is the downside tail fatter when longs are crowded (high funding, rising OI, top traders long)? | Not meaningfully, in this sample. With terciles set on training data, 4-hour drops beyond 2σ happened 1.8% of the time in the most crowded third vs 1.4% in the least crowded. Large up-moves were more common when crowded (3.1% vs 1.9%) |
 
 **A methodology note.** A first pass found a small signal: last-hour OI change predicting the next hour, R² 0.9%. It vanished when OI snapshots were time-stamped 5 minutes later to rule out any overlap with the forecast window. Positioning data is easy to leak, and timestamps have to be handled conservatively.
 
@@ -101,7 +101,7 @@ Other tests on the same data, all fit before May 2026 and scored on May–Septem
 The largest liquidation event on record (reported at ~$19B across exchanges, set off by a US tariff announcement on China [Source]), hour by hour on our data:
 - **Before the crash, positioning looked ordinary.** OI was 0.8 standard deviations above its 30-day mean and funding was a normal 0.4 bp. Nothing flagged a cascade.
 - **The first leg (14:00–17:00 UTC) came as the first tariff headlines hit.** BTC fell about 2.9% over three hours; OI fell about 5%.
-- **The crash hour (21:00–22:00 UTC):** realized one-hour volatility was 334 bp against a forecast of 119 bp (2.8×). OI fell 18.6% in that hour and 37.7% over 24 hours. BTC was down about 9% on the day [Tested].
+- **The crash hour (21:00–22:00 UTC):** realized one-hour volatility was 334 bp against a forecast of 119 bp (2.8×). OI fell 18.6% in that hour and 37.7% over 24 hours. BTC was down about 9% on the day [Tested; a single case study, not a statistical test].
 
 **Lesson:** news triggered the move and leverage amplified it. Positioning did not predict it, but a live liquidation and OI feed **identifies a cascade while it is happening**. That makes it a kill-switch and widening input, not a pricing input.
 
@@ -120,7 +120,7 @@ The largest liquidation event on record (reported at ~$19B across exchanges, set
 Options are the one derivatives market that prices the *distribution*, not just the level.
 
 - **DVOL / at-the-money IV.** A 30-day volatility. It carries real weight in the daily forecast (0.40) and less for the next hour (0.30) [Tested]. On its own it is a poor short-tenor price: a Black-Scholes digital using DVOL lost to our model at every tenor [Tested].
-- **The market prices slightly more volatility than gets realized.** The vol level that best fits the Kalshi mid is 1.00–1.06× our forecast. The level that best fits outcomes is 0.92–0.96× [Tested]. That small premium favors whoever sells the volatility: the maker.
+- **The market prices slightly more volatility than gets realized.** The vol level that best fits the Kalshi mid is 1.00–1.06× our forecast. The level that best fits outcomes is 0.92–0.96× (both fit on the test period, so this is descriptive) [Tested]. A two-sided digital book is not simply short volatility, because higher volatility raises out-of-the-money digitals and lowers in-the-money ones. What the premium means in practice is that the book's far strikes are slightly rich, which is the same longshot premium described in [`03_SENTIMENT_AND_NEWS.md`](03_SENTIMENT_AND_NEWS.md).
 - **Skew and term structure** become primary for weekly and longer contracts (§1.11 of the pricing guide).
 
 ---

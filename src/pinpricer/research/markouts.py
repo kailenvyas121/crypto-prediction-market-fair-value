@@ -4,10 +4,13 @@ Every fill has a taker and a maker. From the maker's side, per contract:
   settlement P&L   s·(p − Y)          exact and model-free (Y = 1 if YES settled)
   spread capture   s·(p − mid)        vs the Kalshi mid at the end of the prior minute
   model edge       s·(p − FV)         vs our fair value at the prior minute
-  markout k min    s·(p − mid_{t+k})  how far the market moved against the maker
+  markout ~k min   s·(p − mid)        vs the mid at the end of the minute k+1 after the fill's
+                                      minute, i.e. between k and k+1 minutes after the fill
 where s = +1 if the maker sold YES (taker bought YES) and −1 if the maker bought YES. Kalshi
 charges these series no maker fee (fee_type "quadratic"); the taker pays ceil(0.07·C·P(1−P)).
-Sample: random test-period events (configs/data.yaml: kalshi.trades_sample).
+Sample: random test-period events (configs/data.yaml: kalshi.trades_sample), ladder strikes chosen
+from the price known at each event's open, so the sample does not depend on outcomes.
+Taker fees are computed per fill as ceil(0.07·C·P(1−P)) dollars, rounded up to the cent.
 """
 
 from __future__ import annotations
@@ -16,7 +19,7 @@ import numpy as np
 import pandas as pd
 
 from pinpricer.config import RAW_DIR
-from pinpricer.data import store
+from pinpricer.data import kalshi, store
 from pinpricer.model.vol import VolModel, proxy_minutes
 from pinpricer.research import calibration as cal
 
@@ -30,7 +33,8 @@ def maker_sign(taker_side: pd.Series) -> np.ndarray:
 
 def _load(series: str, px: pd.Series) -> pd.DataFrame:
     tdir = RAW_DIR / "kalshi" / series / "trades"
-    t = pd.concat([pd.read_parquet(f) for f in tdir.glob("*.parquet")], ignore_index=True)
+    sample = set(kalshi.sample_for_study(series)["ticker"])
+    t = pd.concat([pd.read_parquet(f) for f in tdir.glob("*.parquet") if f.stem in sample], ignore_index=True)
     t = t.dropna(subset=["yes_price"])
     m = pd.read_parquet(RAW_DIR / "kalshi" / series / "markets.parquet",
                         columns=["ticker", "event_ticker", "close_time", "floor_strike", "result", "cadence"])
@@ -48,7 +52,8 @@ def _load(series: str, px: pd.Series) -> pd.DataFrame:
     c["mid"] = (c["yes_bid"] + c["yes_ask"]) / 2
     c.loc[(c["yes_bid"] <= 0) | (c["yes_ask"] >= 1), "mid"] = np.nan
     mids = c.set_index(["ticker", "ts"])["mid"]
-    for k, col in ((0, "mid_0"), (1, "mid_1m"), (5, "mid_5m")):
+    # candle ts is the minute's end; the fill's own minute ends at minute + 1
+    for k, col in ((0, "mid_0"), (2, "mid_1m"), (6, "mid_5m")):
         key = pd.MultiIndex.from_arrays([t["ticker"], t["minute"] + pd.Timedelta(minutes=k)])
         t[col] = mids.reindex(key).to_numpy()
     return t.reset_index(drop=True)
@@ -60,8 +65,8 @@ def _wmean(x: pd.Series, w: pd.Series) -> float:
 
 
 def _ci(d: pd.DataFrame, col: str, n: int = 2000) -> tuple[float, float]:
-    """95% CI of the contract-weighted mean, resampling whole events."""
-    g = d.assign(v=d[col] * d["count"]).groupby("event_ticker")[["v", "count"]].sum()
+    """95% CI of the contract-weighted mean, resampling whole UTC days (events on one day share a price path)."""
+    g = d.assign(v=d[col] * d["count"], day=d["close_time"].dt.floor("D")).groupby("day")[["v", "count"]].sum()
     v, w = g["v"].to_numpy(), g["count"].to_numpy()
     idx = RNG.integers(0, len(g), size=(n, len(g)))
     s = v[idx].sum(1) / w[idx].sum(1)
@@ -92,9 +97,9 @@ def run() -> dict:
     t["mo_1m"] = t["s"] * (p - t["mid_1m"])
     t["mo_5m"] = t["s"] * (p - t["mid_5m"])
     t["edge"] = t["s"] * (p - t["fv"])
-    t["taker_fee"] = 0.07 * p * (1 - p)
+    t["taker_fee"] = np.ceil(100 * 0.07 * t["count"] * p * (1 - p) - 1e-9) / 100 / t["count"]
 
-    res: dict = {"note": "cents per contract, contract-weighted; maker side; CIs resample events"}
+    res: dict = {"note": "cents per contract, contract-weighted; maker side; CIs resample whole days"}
     res["all"] = {cad: _summary(g) for cad, g in t.groupby("cadence")}
 
     # Does the model separate good fills from toxic ones? Bucket fills by the model's edge for the maker.
@@ -117,6 +122,7 @@ def run() -> dict:
     res["by_time_left_min"] = {cad: {str(b): _summary(gg) for b, gg in
                                      g.groupby(pd.cut(g["tau"], tb[cad]).astype(str))}
                                for cad, g in t.groupby("cadence")}
-    res["volume_per_event_contracts"] = {cad: float(g.groupby("event_ticker")["count"].sum().median())
+    res["volume_per_event_contracts"] = {cad: float(g.groupby("event_ticker")["count"].sum().mean())
                                          for cad, g in t.groupby("cadence")}
+    res["volume_note"] = "mean contracts traded per event within the sampled strikes"
     return res

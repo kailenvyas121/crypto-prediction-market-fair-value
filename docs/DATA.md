@@ -41,7 +41,7 @@ Every dataset is pulled by `make data` (or the individual `scripts/pull_*.py`) i
 
 **Spot candles**: `ts` (bar open, UTC), `open`, `high`, `low`, `close`, `volume`. Binance adds `quote_volume`, `taker_buy_volume` and `trades`.
 
-## Pulled snapshot (2026-10-30)
+## Pulled snapshot (2026-11-05)
 
 | Dataset | Rows | Range | Coverage | Size |
 |---|---|---|---|---|
@@ -55,6 +55,11 @@ Every dataset is pulled by `make data` (or the individual `scripts/pull_*.py`) i
 | Binance spot 1s | 5,184,000 | 2026-08-29 → 2026-10-27 | 100% | 161 MB |
 | Binance funding | 1,185 | 2025-09-01 → 2026-09-30 | 100% | <1 MB |
 | Deribit DVOL 1h / 1m | 9,504 / 263,298 | 2025-09-27 / 2026-04-27 → 2026-10-27 | 99.9% | 4 MB |
+| Kalshi fill sample (used by the study) | 5,380,621 (KXBTC15M, 250 windows) + 2,181,604 (KXBTCD, 1,171 strikes in 140 events, chosen from the price at each event's open) | 2026-05-01 → 2026-10-27 | every fill in sampled markets | ~75 MB |
+| Binance perp metrics (5 min) | 114,048 | 2025-09-27 → 2026-10-27 | 100% | 9 MB |
+| Binance ETH, SOL 1m | 613,440 each | 2025-09-01 → 2026-10-31 | 100% | 65 MB |
+| Binance perp + spot trades | 4,293,905 (perp) and spot equivalent | 2026-10-14 → 2026-10-16 | 3 weekdays | 50 MB |
+| Wikipedia pageviews | 397 days × 2 articles | 2025-09-27 → 2026-10-28 | 100% | <1 MB |
 
 **First data-quality check: the USD proxy vs the official settlement.** We compare each source's last 1-minute close before every hourly close with Kalshi's 60-second BRTI settlement, over n = 7,816 hours:
 

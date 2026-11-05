@@ -144,8 +144,8 @@ footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--li
 <header>
   <div class="eyebrow">PinPredict take-home · Quant trader co-op</div>
   <h1>Pricing Crypto Event Contracts</h1>
-  <p class="lede">A fair-value and market-making framework for Kalshi and Polymarket crypto markets at 15-minute, hourly, daily and longer tenors, tested out of sample against a year of Kalshi data: settled outcomes, Kalshi's own quotes, and 7.8 million real fills.</p>
-  <p class="meta">Kailen Vyas · November 2026 · Code, data pipeline and full write-up: <a href="https://github.com/kailenvyas121/pinpredict-crypto-pricer">github.com/kailenvyas121/pinpredict-crypto-pricer</a></p>
+  <p class="lede">A fair-value and market-making framework for Kalshi and Polymarket crypto markets at 15-minute, hourly, daily and longer tenors, tested out of sample against a year of Kalshi data: settled outcomes, Kalshi's own quotes, and 7.6 million real fills.</p>
+  <p class="meta">Kailen Vyas · November 2026 · Code, data pipeline and full write-up: <a href="https://github.com/kailenvyas121/crypto-prediction-market-fair-value">github.com/kailenvyas121/crypto-prediction-market-fair-value</a></p>
 </header>
 
 <section>
@@ -158,12 +158,12 @@ footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--li
   </div>
   <div class="kpis">
     <div class="kpi"><span class="k">vs public approaches</span><span class="v good num">Beats both</span><span class="d">Better than options-implied (DVOL Black-Scholes) and Binance-price models at every tenor; 95% intervals exclude zero.</span></div>
-    <div class="kpi"><span class="k">vs the Kalshi book</span><span class="v even num">Ties hourly</span><span class="d">Ties the mid on hourly, slightly ahead on daily (small sample), behind on 15-minute. A blend with the mid beats the mid alone on hourly and daily.</span></div>
-    <div class="kpi"><span class="k">Maker economics</span><span class="v good num">+0.61¢ → +1.85¢</span><span class="d">The average hourly maker earns 0.61¢ per contract at settlement. Fills the model rates favorable earn 1.85¢ (95% CI 0.51 to 3.23).</span></div>
+    <div class="kpi"><span class="k">vs the Kalshi book</span><span class="v even num">Close on hourly</span><span class="d">Within 0.3 thousandths of Brier on hourly (statistically slightly behind), slightly ahead on daily (not significant), behind on 15-minute.</span></div>
+    <div class="kpi"><span class="k">Maker economics</span><span class="v good num">+0.74¢ → +1.82¢</span><span class="d">The average hourly maker earns 0.74¢ per contract at settlement. Fills the model rates favorable earn 1.82¢ (95% CI 0.29 to 3.36).</span></div>
   </div>
   <div class="callout">
     <strong>What this means for PinPredict</strong>
-    <p>Makers on Kalshi's BTC markets are paid, the model already prices hourly and daily contracts as well as the book, and it roughly triples the hourly maker's edge by telling it where to stand. Start on hourly and daily, where the latency bar is lowest and retail flow concentrates. Bring in 15-minute markets once a sub-second index replica and volatility read close the remaining gap. Use positioning data and the news feed for <i>risk</i> (widening, pulling, sizing), not for fair value. Our data shows they don't forecast price; they describe danger.</p>
+    <p>Makers on Kalshi's BTC markets are paid. The model comes within a fraction of a thousandth of the book's accuracy on hourly and daily contracts, and on hourly the fills it rates favorable earn about 2.5× the average maker's edge. Start on hourly and daily, where the latency bar is lowest and retail flow concentrates. Bring in 15-minute markets once a sub-second index replica and volatility read close the remaining gap. Use positioning data and the news feed for <i>risk</i> (widening, pulling, sizing), not for fair value. Our data shows they don't forecast price; they describe danger.</p>
   </div>
 </section>
 
@@ -174,8 +174,8 @@ footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--li
     <table class="wide">
       <thead><tr><th>Market</th><th>Pays YES if</th><th>Settlement</th><th>Note</th></tr></thead>
       <tbody>
-        <tr><td><b>Kalshi 15-min</b> <span class="mono">KXBTC15M</span></td><td>Average at close ≥ average at open (tie pays YES)</td><td>BRTI, 60 one-second prints</td><td>The strike equals the prior window's settlement (verified on 27,093 windows). Bot-heavy</td></tr>
-        <tr><td><b>Kalshi hourly / daily</b> <span class="mono">KXBTCD</span></td><td>Average at T &gt; K</td><td>BRTI, 60-second average</td><td>~150 strikes per event. Daily settles at 5 PM ET. Retail-heavy</td></tr>
+        <tr><td><b>Kalshi 15-min</b> <span class="mono">KXBTC15M</span></td><td>Average at close ≥ average at open (tie pays YES)</td><td>BRTI, 60 one-second prints</td><td>The strike equals the prior window's settlement (verified on 27,093 windows)</td></tr>
+        <tr><td><b>Kalshi hourly / daily</b> <span class="mono">KXBTCD</span></td><td>Average at T &gt; K</td><td>BRTI, 60-second average</td><td>~150 strikes per event. Daily settles at 5 PM ET</td></tr>
         <tr><td><b>Polymarket US 15-min</b></td><td>Up/down</td><td>BRTI, 60-second average (per its CFTC filings)</td><td>Same engine as Kalshi</td></tr>
         <tr><td><b>Polymarket intl. 5m/15m/4h</b></td><td>End ≥ start</td><td>Chainlink BTC/USD 60-second TWAP vs the price at the start</td><td>Compared two single prints until mid-2026. Separate index; needs a basis model. Closed to US persons</td></tr>
         <tr><td><b>Polymarket intl. hourly</b></td><td>1h candle close ≥ open</td><td>Binance BTC/USDT 1h candle</td><td>A single USDT print, about +5 bp vs BRTI (measured). Easiest to push near the close</td></tr>
@@ -198,7 +198,7 @@ footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--li
     <div class="arrow"></div>
     <div class="stage">
       <div class="in"><span class="lbl">Inputs</span><div><span class="chip">Realized var 1h/24h/7d</span><span class="chip">ET time of week</span><span class="chip">Deribit DVOL</span><span class="chip">Macro calendar</span></div></div>
-      <div class="body"><h3><span class="n">2</span>Forecast variance for the exact minutes left</h3><p>Log-HAR on realized variance plus DVOL, times the variance profile of the minutes left (US open ~3× average, weekends 0.67×), plus release bumps (first 5 minutes after CPI, payrolls or FOMC: 7.5× forecast).</p><p class="math">V = level(t) × Σ season(minute) over [t, T] + event bumps</p></div>
+      <div class="body"><h3><span class="n">2</span>Forecast variance for the exact minutes left</h3><p>Log-HAR on realized variance plus DVOL, times the variance profile of the minutes left (US open ~3× average, weekends 0.67×), plus release bumps (first 5 minutes after CPI, payrolls or FOMC: about 6× forecast, pooled on training releases).</p><p class="math">V = level(t) × Σ season(minute) over [t, T] + event bumps</p></div>
     </div>
     <div class="arrow"></div>
     <div class="stage">
@@ -208,7 +208,7 @@ footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--li
     <div class="arrow"></div>
     <div class="stage">
       <div class="in"><span class="lbl">Inputs</span><div><span class="chip">ν ≈ 4.2–4.5</span><span class="chip">Deribit smile (daily+)</span></div></div>
-      <div class="body"><h3><span class="n">4</span>Use fat tails</h3><p>Scale-matched Student-t. This was the largest single improvement. A normal overprices cheap strikes by 4–5¢ vs outcomes; the t is within about 1–1.5¢.</p><p class="math">P(Ā_T &gt; K) = 1 − F_ν( ln(K/S) / √V_eff )</p></div>
+      <div class="body"><h3><span class="n">4</span>Use fat tails</h3><p>Scale-matched Student-t: the largest refinement after the realized-volatility forecast itself. A normal overprices cheap strikes by 4–5¢ vs outcomes; the t is within about 1–1.5¢.</p><p class="math">P(Ā_T &gt; K) = 1 − F_ν( ln(K/S) / √V_eff )</p></div>
     </div>
     <div class="arrow"></div>
     <div class="stage">
@@ -233,7 +233,7 @@ footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--li
       <div class="lanes">
         <div class="lane">
           <div class="hd">Kalshi 15-min<small>KXBTC15M</small></div>
-          <div class="cell"><b>Dominant input</b>Index level, sub-second. ~1.5–6¢ per bp of BTC</div>
+          <div class="cell"><b>Dominant input</b>Index level, sub-second. ~1.5–10¢ per bp of BTC</div>
           <div class="cell"><b>Vol</b>Fast realized vol; DVOL adds little</div>
           <div class="cell"><b>Special</b>Averaging in the last 3 minutes</div>
           <div class="cell"><b>Main risk</b>Pick-off by faster index readers</div>
@@ -246,8 +246,8 @@ footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--li
           <div class="cell"><b>Vol</b>HAR + season + DVOL, t-tails</div>
           <div class="cell"><b>Special</b>Release bumps; ladder coherence</div>
           <div class="cell"><b>Main risk</b>A gap sweeps every strike</div>
-          <div class="cell"><b>Model vs mid</b>Tied</div>
-          <div class="cell"><b>Makers earn</b>+0.61¢; model-filtered +1.85¢</div>
+          <div class="cell"><b>Model vs mid</b>Within 0.3×10⁻³ (slightly behind)</div>
+          <div class="cell"><b>Makers earn</b>+0.74¢; model-filtered +1.82¢</div>
         </div>
         <div class="lane">
           <div class="hd">Kalshi daily<small>KXBTCD 5 PM ET</small></div>
@@ -255,8 +255,8 @@ footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--li
           <div class="cell"><b>Vol</b>Largest DVOL weight; smile for far strikes</div>
           <div class="cell"><b>Special</b>Fat tails matter most; perp hedging pays</div>
           <div class="cell"><b>Main risk</b>Overnight and weekend gaps</div>
-          <div class="cell"><b>Model vs mid</b>Slightly ahead (small sample)</div>
-          <div class="cell"><b>Makers earn</b>+0.65¢ per contract</div>
+          <div class="cell"><b>Model vs mid</b>Slightly ahead, not significant</div>
+          <div class="cell"><b>Makers earn</b>+0.83¢ per contract</div>
         </div>
         <div class="lane poly">
           <div class="hd">Polymarket 15-min<small>Chainlink TWAP / BRTI (US)</small></div>
@@ -297,7 +297,7 @@ footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--li
       </tbody>
     </table>
   </div>
-  <p class="caption">Hourly strike $80,400 with 40 minutes left: 14.0¢ under a normal, 10.3¢ with fat tails, and 21.8¢ if those 40 minutes are the 10–11 AM ET hour. Time of day alone is worth 11¢.</p>
+  <p class="caption">Hourly strike $80,400 with 40 minutes left: 13.8¢ under a normal, 10.2¢ with fat tails, and 21.7¢ if those 40 minutes are the 10–11 AM ET hour. Time of day alone is worth 11¢.</p>
 </section>
 
 <section>
@@ -310,6 +310,7 @@ footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--li
       <tbody>
         <tr><td>Public baseline: Binance price, recent vol, normal</td><td class="r">0.2447</td><td class="r">0.1042</td><td class="r">0.0949</td><td class="r">20.9 / 6.5 / 4.0¢</td></tr>
         <tr><td>Public baseline: options-implied (DVOL Black-Scholes)</td><td class="r">0.1757</td><td class="r">0.0995</td><td class="r">0.0963</td><td class="r">8.4 / 6.1 / 3.6¢</td></tr>
+        <tr><td>Variant: Binance minus trailing USDT basis, full model</td><td class="r">0.1689</td><td class="r">0.0924</td><td class="r">0.0924</td><td class="r">5.6 / 2.4 / 1.9¢</td></tr>
         <tr><td>v1 realized vol (EWMA)</td><td class="r">0.1664</td><td class="r">0.0940</td><td class="r">0.0948</td><td class="r">4.7 / 3.1 / 3.8¢</td></tr>
         <tr><td>v3 + time of week + DVOL</td><td class="r">0.1664</td><td class="r">0.0933</td><td class="r">0.0939</td><td class="r">4.8 / 3.0 / 2.4¢</td></tr>
         <tr class="best"><td>v4 + Student-t tails</td><td class="r">0.1653</td><td class="r">0.0923</td><td class="r">0.0925</td><td class="r">4.3 / 2.2 / 1.9¢</td></tr>
@@ -319,52 +320,54 @@ footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--li
   </div>
   <div class="grid2">
     <div class="panel">
-      <h3>Differences, 95% CI by event (×1000)</h3>
+      <h3>Differences, 95% CI by day (×1000)</h3>
       <div class="scroll"><table>
         <thead><tr><th></th><th class="r">15-min</th><th class="r">Hourly</th><th class="r">Daily</th></tr></thead>
         <tbody>
-          <tr><td>v4 − mid</td><td class="r">+3.0 (2.4, 3.7)</td><td class="r">+0.3 (0.1, 0.6)</td><td class="r">−0.5 (−1.2, 0.1)</td></tr>
-          <tr><td>v4 − options-implied</td><td class="r">−10.4 (−11.4, −9.5)</td><td class="r">−7.2 (−7.8, −6.5)</td><td class="r">−3.8 (−5.8, −1.9)</td></tr>
+          <tr><td>v4 − mid</td><td class="r">+3.0 (2.4, 3.8)</td><td class="r">+0.3 (0.1, 0.6)</td><td class="r">−0.5 (−1.2, 0.1)</td></tr>
+          <tr><td>v4 − options-implied</td><td class="r">−10.4 (−12.4, −8.7)</td><td class="r">−7.2 (−8.6, −5.8)</td><td class="r">−3.8 (−5.9, −1.9)</td></tr>
+          <tr><td>v4 − basis-corrected Binance</td><td class="r">−3.7 (−4.9, −2.5)</td><td class="r">−0.1 (−0.3, 0.1)</td><td class="r">0.0 (−0.1, 0.1)</td></tr>
         </tbody>
       </table></div>
     </div>
     <div class="panel">
       <h3>Does the model add to the mid?</h3>
-      <p>Blend weight on the model, fit on training data: 0.26 (15-min), 0.51 (hourly), 0.80 (daily). Out of sample the blend beats the mid alone on hourly (0.09191 vs 0.09200) and daily (0.09246 vs 0.09300), so the model carries information the book does not.</p>
+      <p>Blend weight on the model, fit on training data: 0.26 (15-min), 0.51 (hourly), 0.80 (daily). Out of sample the hourly and daily blends edge out the mid (0.09191 vs 0.09200; 0.09246 vs 0.09300), but neither difference is significant. The honest reading: the model is close to the book, not shown to know more than it.</p>
     </div>
   </div>
-  <p class="caption">Why 15-minute trails: inverting each quote for the index level the market must be using gives a 0.9 bp median gap to our proxy (the proxy's known error size), correlated 0.34 with the gap implied by the hourly ladder at the same minute. The gap also grows with strike distance, which points to the market reading short-term volatility faster. Sub-second index replication is necessary for 15-minute markets, and a second-by-second volatility read is the other half.</p>
+  <p class="caption">Why 15-minute trails: inverting each quote for the index level the market must be using gives a 0.9 bp median gap to our proxy (the proxy's known error size), correlated 0.34 with the gap implied by the hourly ladder at the same minute. The gap also grows with strike distance, which points to the market reading short-term volatility faster, and part of it could be quotes lagging our end-of-minute price. One-minute data from two exchanges is not enough for 15-minute markets; the roadmap tests a sub-second index and volatility read before quoting them.</p>
 </section>
 
 <section>
   <div class="eyebrow">Test 2 · Market-making economics</div>
   <h2>Do makers make money, and does the model help?</h2>
-  <p class="prose">6.3 million real Kalshi fills from random test-period events (250 fifteen-minute windows, 120 hourly events, 20 daily events), each with the taker's side. From the maker's side, per contract: settlement P&amp;L = s·(price − outcome). Makers pay no fee on these series. Contract-weighted; intervals resample whole events.</p>
+  <p class="prose">6.3 million real Kalshi fills from random test-period events (250 fifteen-minute windows, 120 hourly events, 20 daily events), each with the taker's side. Ladder strikes are chosen from the price known at each event's open, so the sample doesn't depend on outcomes. From the maker's side, per contract: settlement P&amp;L = s·(price − outcome). Makers pay no fee on these series. Contract-weighted; intervals resample whole days.</p>
   <div class="scroll">
     <table class="wide">
       <thead><tr><th>Market</th><th class="r">Contracts</th><th class="r">Maker P&amp;L per contract</th><th class="r">95% CI</th><th class="r">Model edge ≥ 1¢</th><th class="r">Model edge &lt; 0</th></tr></thead>
       <tbody>
-        <tr><td>15-minute</td><td class="r">405M</td><td class="r">+0.48¢</td><td class="r">0.17 to 0.78</td><td class="r">1.15¢ (−0.78 to 3.11)</td><td class="r">−0.03¢</td></tr>
-        <tr class="best"><td>Hourly</td><td class="r">181M</td><td class="r">+0.61¢</td><td class="r">0.17 to 1.07</td><td class="r">+1.85¢ (0.51 to 3.23)</td><td class="r">−0.79¢</td></tr>
-        <tr><td>Daily</td><td class="r">41M</td><td class="r">+0.65¢</td><td class="r">0.08 to 1.20</td><td class="r">0.15¢ (−3.10 to 3.25)</td><td class="r">1.04¢</td></tr>
+        <tr><td>15-minute</td><td class="r">405M</td><td class="r">+0.48¢</td><td class="r">0.20 to 0.81</td><td class="r">1.15¢ (−0.71 to 2.94)</td><td class="r">−0.03¢</td></tr>
+        <tr class="best"><td>Hourly</td><td class="r">149M</td><td class="r">+0.74¢</td><td class="r">0.23 to 1.28</td><td class="r">+1.82¢ (0.29 to 3.36)</td><td class="r">−0.46¢</td></tr>
+        <tr><td>Daily</td><td class="r">48M</td><td class="r">+0.83¢</td><td class="r">0.09 to 1.54</td><td class="r">0.85¢ (−2.55 to 3.85)</td><td class="r">0.50¢</td></tr>
       </tbody>
     </table>
   </div>
   <div class="grid2">
     <div class="panel">
       <h3>The model sorts fills</h3>
-      <p>On hourly, maker P&amp;L rises with the model's edge: < −5¢: −1.58¢, −5 to −2¢: −0.79¢, −2 to 0¢: +0.28¢, 0 to 2¢: +0.69¢, 2 to 5¢: +1.04¢, > 5¢: +2.74¢. A maker who stands only where the model sees edge earns about three times the average maker per contract.</p>
+      <p>On hourly, maker P&amp;L rises with the model's edge: &lt; −5¢: −0.76¢, −5 to −2¢: −0.75¢, −2 to 0¢: +0.19¢, 0 to 2¢: +0.78¢, 2 to 5¢: +1.39¢, &gt; 5¢: +2.35¢. A maker who stands only where the model sees edge earns about 2.5× the average maker per contract.</p>
     </div>
     <div class="panel">
       <h3>Where the money is</h3>
       <ul>
-        <li>Retail-sized hourly fills (≤10 contracts) pay makers +1.10¢ per contract.</li>
-        <li>On 15-minute contracts the final minute is roughly break-even for makers (+0.10¢), with a −0.73¢ one-minute markout: that is where pick-off lives.</li>
-        <li>Cheap contracts on both sides are overpriced by about 2¢ on 6,470 hourly and daily events: a longshot premium makers collect.</li>
+        <li>Retail-sized hourly fills (≤10 contracts) pay makers +1.34¢ per contract.</li>
+        <li>Fills over 1,000 contracts pay makers least (+0.33¢) and the market moves against the maker after them: large takers are better informed.</li>
+        <li>On 15-minute contracts makers earn roughly nothing over the last 10 minutes; only the 10–15 minute bucket is clearly positive. That is where pick-off lives.</li>
+        <li>Cheap contracts on both sides are overpriced by about 2¢ across 6,475 hourly and daily events: a longshot premium makers collect.</li>
       </ul>
     </div>
   </div>
-  <p class="caption">Limits: observed fills went to whichever makers were at the front of the queue; a new entrant gets a share and may be adversely selected more. The model-filtered numbers assume those fills would have been ours, and the daily filter result (20 events) is noise. A queue-position replay on recorded Kalshi books is the next test.</p>
+  <p class="caption">Limits: observed fills went to whichever makers were at the front of the queue; a new entrant gets a share and may be adversely selected more. The model-filtered numbers assume those fills would have been ours. A queue-position replay on recorded Kalshi books is the next test.</p>
 </section>
 
 <section>
@@ -381,7 +384,7 @@ footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--li
     </div>
     <div class="panel">
       <h3>The OI story describes; it doesn't predict</h3>
-      <p>Price up/down × OI up/down ("new longs", "short covering", "new shorts", "long liquidation"): no quadrant predicted the next 4 hours (largest |t| = 1.35). Crowded longs did not have fatter downside tails in this sample.</p>
+      <p>Price up/down × OI up/down ("new longs", "short covering", "new shorts", "long liquidation") — no quadrant predicted the next 4 hours (largest |t| = 1.35). Crowded longs did not have meaningfully fatter downside tails in this sample.</p>
     </div>
     <div class="panel">
       <h3>Case: 10 Oct 2025</h3>
@@ -401,7 +404,7 @@ footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--li
     </div>
     <div class="panel">
       <h3>B. Crowd error (longer tenors)</h3>
-      <p>Cheap Kalshi contracts are overpriced by about 2¢ on both sides (6,470 events, intervals exclude zero). Downside longshots are most overpriced after strong rallies (3.6¢) and fairly priced after declines. That is suggestive, not established. For weekly-to-yearly markets the comparison becomes the options-implied fair value, and the trade is to sell the rich side and hedge it in options.</p>
+      <p>Cheap Kalshi contracts are overpriced by about 2¢ on both sides (6,475 events in 44 weeks; week-level intervals exclude zero). Downside longshots are most overpriced after strong rallies (3.6¢) and fairly priced after declines. That is suggestive, not established. For weekly-to-yearly markets the comparison becomes the options-implied fair value, and the trade is to sell the rich side and hedge it in options.</p>
     </div>
     <div class="panel">
       <h3>C. Direction: not supported</h3>
@@ -409,7 +412,7 @@ footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--li
     </div>
     <div class="panel">
       <h3>Scheduled releases are in the model</h3>
-      <p>First 5 minutes after CPI or FOMC: about 21× forecast variance; payrolls 7.6×. A bump fit on training releases improved Brier on test-period hourly contracts spanning a release (0.1265 vs 0.1275 for the mid), with too few releases to call it significant yet.</p>
+      <p>First 5 minutes after a release, median across the full sample: CPI 26×, FOMC 16×, payrolls 11× forecast variance. A pooled 6.3× bump fit on training releases improved Brier on test-period hourly contracts spanning a release (0.1264 vs 0.1275 for the mid), with too few releases to call it significant yet.</p>
     </div>
   </div>
 </section>

@@ -34,7 +34,7 @@ Bitcoin has no earnings, cash flows or balance sheet. Over the minutes-to-days h
 | **One dominant factor** | ETH and SOL behave like leveraged BTC. One volatility engine plus betas covers the whole complex | ETH β ≈ 1.2 to BTC with R² 0.74–0.82; SOL β ≈ 1.25, R² 0.65–0.76; in BTC's biggest hours, both moved the same direction 100% of the time [Tested] |
 | **Everything is observable, 24/7** | Order books, perpetual futures, open interest, funding and options are public and granular. The market's state can be measured, not guessed | All data in this repo is free and public [Tested] |
 | **Transparent settlement index** | Contracts settle on a published index (CF Benchmarks BRTI for Kalshi) that can be rebuilt from exchange data | A free two-exchange proxy tracks the settlement to 1.2 bp median [Tested] |
-| **Macro sensitivity** | BTC trades as a risk asset. US data releases move it sharply | Variance in the 5 minutes after CPI, payrolls or FOMC runs 7–21× the normal forecast [Tested] |
+| **Macro sensitivity** | BTC trades as a risk asset. US data releases move it sharply | Variance in the 5 minutes after a CPI, payrolls or FOMC release runs about 6× the normal forecast pooled, and 11–26× by release type [Tested] |
 
 So crypto is **technically tractable, not easy**. The same features that make it quantitative also make it dangerous:
 - **Volatility is high.** BTC runs about 45% annualized, versus roughly 15–20% for the S&P 500 [Tested for BTC].
@@ -80,7 +80,7 @@ Most avoidable losses on these venues come from pricing the wrong thing. Answer 
 | Timezone and pauses? | Contracts are defined in ET; data arrives in UTC; DST shifts the mapping | Trading pause Thursdays 3–5 AM ET [Source] |
 | Fees? | They set the break-even for both sides | Taker pays ceil(0.07·C·P(1−P)), 1.75¢ at 50¢; **no maker fee** on these series (API `fee_type: quadratic`) [Source] |
 
-**What getting this wrong costs:** a common setup prices Kalshi's 15-minute market off Binance's BTC/USDT price, with recent volatility and a normal distribution. In our test it averaged **21¢ away from the market** and scored far worse than every model that used the right index [Tested]. Getting the index right is the first and largest edge.
+**What getting this wrong costs:** a naive setup prices Kalshi's 15-minute market off Binance's BTC/USDT price, with recent volatility and a normal distribution. In our test it averaged **21¢ away from the market** and scored far worse than every model that used the right index [Tested]. Correcting Binance by a trailing 24-hour USDT basis and using our full model fixes most of that: it matches our model on hourly and daily, but still trails on 15-minute contracts, where a basis that drifts within the day costs real money [Tested]. Getting the index right is the first edge.
 
 ---
 
@@ -116,7 +116,7 @@ Volatility is the input that actually has to be forecast. Our forecast has three
    | 11 AM–1 PM | 1.7–2.1× |
    | Weekends | 0.67× |
 
-3. **Scheduled events.** CPI, payrolls and FOMC concentrate variance into minutes. The first 5 minutes after a release run 7.5× the normal forecast on average across releases, and the following hour about 2.1× [Tested].
+3. **Scheduled events.** CPI, payrolls and FOMC concentrate variance into minutes. Fit on training releases, the first 5 minutes after a release carry about 6.3× the normal forecast variance, and minutes 5–60 about 2.0× (both relative to the same time on non-release days) [Tested].
 
 ---
 
@@ -130,7 +130,7 @@ Kalshi settles on a 60-second average, so the last minute contributes about a th
 
 ## 1.8 Step 5: use fat tails
 
-Replace the normal with a Student-t scaled to the same variance. The fitted ν is 4.5 for 15-minute horizons and 4.2 for 1-hour horizons [Tested]. This was the **largest single improvement** in the model [Tested]:
+Replace the normal with a Student-t scaled to the same variance. The fitted ν is 4.5 for 15-minute horizons and 4.2 for 1-hour horizons [Tested]. After the move from a flat volatility to a realized-volatility forecast (the biggest gain of all), fat tails were the **largest refinement** in the model [Tested]:
 - **Hourly:** the gap to the Kalshi mid shrank from 1.3 to 0.3 thousandths of Brier score.
 - **Cheap strikes:** on contracts 0.5–1.5σ out of the money, a normal model overprices by about 4–5¢ relative to what they actually paid. The t-model sits within about 1–1.5¢.
 
@@ -157,9 +157,9 @@ It is 3:10 PM in a 3:00–3:15 window. The start price was $80,000, BTC is at $8
 ### Worked example: an hourly strike
 
 Strike $80,400 with BTC at $80,060 and 40 minutes left:
-- A normal distribution gives 14.0¢.
-- Fat tails give 10.3¢.
-- If those 40 minutes are the 10–11 AM ET hour (about 3× variance), fair value rises to **21.8¢**. Time of day alone is worth 11¢ on this contract.
+- A normal distribution gives 13.8¢.
+- Fat tails (ν = 4.2) give 10.2¢.
+- If those 40 minutes are the 10–11 AM ET hour (about 3× variance), fair value rises to **21.7¢**. Time of day alone is worth 11¢ on this contract.
 
 ---
 
@@ -169,9 +169,9 @@ The recipe never changes, but which input dominates does.
 
 | Tenor | What dominates | Sensitivity to a 1 bp BTC move (at the money) | Our model vs the Kalshi mid [Tested] |
 |---|---|---|---|
-| **15-minute** | Exact index level, sub-second; averaging in the last minutes | ~1.5¢ (15 min left) to ~6¢ (final minute) | Behind: 4.3¢ average gap |
-| **Hourly** | Variance forecast, time of day, releases | ~0.75¢ | Tied |
-| **Daily** | Variance level, tails, options IV | ~0.15¢ | Slightly ahead (small sample) |
+| **15-minute** | Exact index level, sub-second; averaging in the last minutes | ~1.5¢ with 15 min left; ~6¢ in the final minute for a point print, ~10¢ at the start of the 60-second averaging window | Behind: 4.3¢ average gap |
+| **Hourly** | Variance forecast, time of day, releases | ~0.75¢ | Within 0.3 thousandths of Brier, statistically slightly behind |
+| **Daily** | Variance level, tails, options IV | ~0.15¢ | Slightly ahead, not significant (104 events) |
 | **Weekly to year-end** | The options-implied distribution, discounting, the crowd | negligible | Not tested; method in §1.11 |
 | **Touch / barrier** | Path: volatility, vol-of-vol, jumps, monitoring rule | – | Not tested; method in §1.12 |
 
@@ -181,8 +181,9 @@ The recipe never changes, but which input dominates does.
 - The implied level differs from our proxy by 0.9 bp at the median, about the size of the proxy's known error.
 - The hourly ladder, a separate market, implies a correlated difference at the same minute (correlation 0.34).
 - But the gap also grows with strike distance, which points to the market also reading short-term volatility faster than a one-minute model can.
+- And repricing 15-minute contracts on the hourly ladder's implied index level narrows the cents gap only slightly (4.45¢ → 4.21¢) without improving accuracy. Part of the shared gap could also be Kalshi quotes lagging our end-of-minute price.
 
-The honest conclusion: **sub-second index replication is necessary for 15-minute markets but probably not sufficient**. A second-by-second volatility read is the other half.
+The conclusion: **one-minute data from two exchanges is not enough for 15-minute markets.** The most likely fixes are a sub-second BRTI replica and a second-by-second volatility read, and phase 3 of the roadmap tests exactly that before any 15-minute quoting.
 
 ---
 
@@ -190,7 +191,7 @@ The honest conclusion: **sub-second index replication is necessary for 15-minute
 
 For contracts expiring in weeks or months, the options market already prices the full distribution.
 
-1. **Read the digital off the smile.** "BTC above K on date T" ≈ a tight call spread around K. Its price is −∂C/∂K, which with skew is N(d₂) − vega·∂σ/∂K (Breeden–Litzenberger).
+1. **Read the digital off the smile.** "BTC above K on date T" ≈ a tight call spread around K. Its price is −∂C/∂K, the first strike derivative of the call price, which with skew is N(d₂) − vega·∂σ/∂K. (The second derivative gives the full density: Breeden–Litzenberger.)
 2. **Match the settlement time.** Deribit expires at 08:00 UTC on a 30-minute average; Kalshi's daily settles at 5 PM ET on a 60-second average [Source]. Interpolate total variance to the exact time. The hedge is close, not exact.
 3. **Account for capital.** Kalshi pays variable interest (currently 3.5% APY) on cash *and* the value of open positions [Source]. That offsets much of the cost of tying up capital, but the hedge leg on Deribit or a perp has its own funding cost.
 4. **Account for frictions.** Fees, position limits ($25k per strike on Kalshi [Source]) and the fact that most buyers cannot hedge in options.
@@ -228,9 +229,10 @@ Note that options-implied volatility alone is a poor short-tenor price. A Black-
 | Approach | Who uses it | Result in our test [Tested] |
 |---|---|---|
 | **Binance price + recent vol + normal** | Common in public bot code | Far worse than everything else. 15-minute Brier 0.245 vs 0.165 for ours, because the USDT index is the wrong one |
+| **Binance price minus a trailing 24h USDT basis, with our full model** | A careful version of the same idea | Matches ours on hourly and daily (differences within ±0.3 thousandths); worse on 15-minute by 3.7 thousandths (interval −4.9 to −2.5). The basis drifts within the day, and 15-minute contracts feel it |
 | **Options-implied (Black-Scholes digital with DVOL)** | Common first attempt by options traders; several public tests | Worse than ours at every tenor (95% intervals exclude zero) and worse than the mid. Consistent with public tests that found options-implied fair value loses to the Kalshi mid [Source] |
-| **This repo's model (v4)** | – | Ties the mid on hourly, slightly ahead on daily, behind on 15-minute |
-| **The Kalshi mid** | The market, with SIG and other designated market makers quoting [Source] | The benchmark. Already efficient on hourly and daily |
+| **This repo's model (v4)** | – | Within 0.3 thousandths of Brier of the mid on hourly (statistically slightly behind), slightly ahead on daily (not significant), behind on 15-minute |
+| **The Kalshi mid** | The market, with SIG and other designated market makers quoting [Source] | The benchmark. Close to efficient on hourly and daily |
 | **Designated market makers' internal models** | SIG, others (not public) | Unknown. They are likely options-style books with sub-second index replication [Judgment] |
 
-**The point:** the free, first-principles model matches the market where retail flow is heaviest (hourly and daily), and it beats the public approaches by a wide margin. That is the bar for quoting safely. The money then comes from market making, not from out-forecasting the market ([`04_MARKET_MAKING.md`](04_MARKET_MAKING.md)).
+**The point:** the free, first-principles model comes within a fraction of a thousandth of the market's accuracy on hourly and daily contracts, and it beats the public approaches by a wide margin. That is the bar for quoting safely. The money then comes from market making, not from out-forecasting the market ([`04_MARKET_MAKING.md`](04_MARKET_MAKING.md)).

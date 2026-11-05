@@ -163,3 +163,20 @@ def test_events_calendar_converts_et_to_utc():
     cpi = e[(e.event == "CPI") & (e.date == "2026-07-14")].ts.iloc[0]
     assert cpi == T("2026-07-14 12:30", tz="UTC")  # 8:30 EDT
     assert set(e.event) == {"CPI", "NFP", "FOMC"}
+
+
+def test_trade_sample_does_not_depend_on_outcome():
+    # Two hourly events; the second's settlement is the outcome and must not affect which strikes are kept.
+    rows = []
+    for close, settle in (("2026-07-15 17:00", 100_000.0), ("2026-07-15 18:00", 100_000.0)):
+        for k in (99_000.0, 99_800.0, 100_200.0, 101_000.0):
+            rows.append({"ticker": f"{close}-{k}", "event_ticker": close, "cadence": "hourly",
+                         "open_time": T(close, tz="UTC") - pd.Timedelta(hours=1), "close_time": T(close, tz="UTC"),
+                         "floor_strike": k, "expiration_value": settle})
+    m = pd.DataFrame(rows)
+    kept = kalshi.trade_sample(m, "hourly", 2, 0.5, 0, T("2026-07-15", tz="UTC"))
+    m2 = m.copy()
+    m2.loc[m2.event_ticker == "2026-07-15 18:00", "expiration_value"] = 101_000.0  # different outcome
+    kept2 = kalshi.trade_sample(m2, "hourly", 2, 0.5, 0, T("2026-07-15", tz="UTC"))
+    assert kept[kept.event_ticker == "2026-07-15 18:00"].ticker.tolist() == \
+        kept2[kept2.event_ticker == "2026-07-15 18:00"].ticker.tolist() == ["2026-07-15 18:00-99800.0", "2026-07-15 18:00-100200.0"]

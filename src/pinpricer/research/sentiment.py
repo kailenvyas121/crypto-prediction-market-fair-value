@@ -38,7 +38,8 @@ def _daily(px: pd.Series, vm: VolModel) -> pd.DataFrame:
 
 
 def _ci(g: pd.DataFrame, col: str, n: int = 2000) -> list[float]:
-    e = g.groupby("event_ticker")[col].agg(["sum", "count"])
+    """95% CI resampling whole calendar weeks (contracts in one week share a price path and regime)."""
+    e = g.assign(week=g["close_time"].dt.tz_convert(None).dt.to_period("W")).groupby("week")[col].agg(["sum", "count"])
     s, c = e["sum"].to_numpy(), e["count"].to_numpy()
     idx = RNG.integers(0, len(e), size=(n, len(e)))
     b = s[idx].sum(1) / c[idx].sum(1)
@@ -85,12 +86,15 @@ def run() -> dict:
     far["att"] = d["att_shock"].reindex(day).to_numpy()
     far = far.dropna(subset=["ret_7d_past", "att"])
     res["crowd_error"] = {"rows": len(far), "events": int(far.event_ticker.nunique()),
-                          "note": "mid − outcome on cheap (P<0.3) contracts, cents; >0 means the crowd overpays"}
+                          "weeks": int(far.close_time.dt.tz_convert(None).dt.to_period("W").nunique()),
+                          "note": ("mid − outcome on the cheap side (model < 30% and mid < 50% for that side), cents; "
+                                   ">0 means the crowd overpays; CIs resample weeks; terciles cut on the full sample")}
     for name, col in (("by_trailing_7d_return", "ret_7d_past"), ("by_attention_shock", "att")):
         b = pd.qcut(far[col], 3, labels=["low", "mid", "high"])
         res["crowd_error"][name] = {
             f"{side} | {lvl}": {"n": len(g), "overpricing_c": float(100 * g.over.mean()), "ci95_c": _ci(g, "over")}
             for (side, lvl), g in far.groupby(["side", b], observed=True)}
-    res["crowd_error"]["all"] = {s: {"n": len(g), "overpricing_c": float(100 * g.over.mean()), "ci95_c": _ci(g, "over")}
+    res["crowd_error"]["all"] = {s: {"n": len(g), "events": int(g.event_ticker.nunique()),
+                                     "overpricing_c": float(100 * g.over.mean()), "ci95_c": _ci(g, "over")}
                                  for s, g in far.groupby("side")}
     return res
