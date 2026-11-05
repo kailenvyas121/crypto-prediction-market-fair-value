@@ -8,6 +8,7 @@ Forecasters, simplest first:
   ewma    exponentially weighted r², 60-minute half-life
   har     log-HAR on deseasonalized r² (1h / 24h / 7d), times the ET half-hour-of-week profile
   har_iv  har plus Deribit DVOL as a regressor
+  dvol    Deribit DVOL alone, flat over the window: the common "options-implied" baseline
 """
 
 from __future__ import annotations
@@ -116,8 +117,9 @@ class VolModel:
         """(variance to expiry, variance of the final minute) for windows starting at index positions t_pos."""
         # returns over the window are those of bars ending at positions t_pos+1 .. t_pos+τ
         end = np.minimum(t_pos + tau_min, len(self.s) - 1)
-        if kind in ("flat", "ewma"):
-            lvl = (self.flat if kind == "flat" else self.ewma)[t_pos]
+        if kind in ("flat", "ewma", "dvol"):
+            src = {"flat": self.flat, "ewma": self.ewma, "dvol": self.feat["iv"].to_numpy()}[kind]
+            lvl = src[t_pos]
             return lvl * tau_min, lvl
         seas_sum = self.s_cum[end + 1] - self.s_cum[t_pos + 1]
         seas_last = self.s[end]

@@ -144,26 +144,26 @@ footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--li
 <header>
   <div class="eyebrow">PinPredict take-home · Quant trader co-op</div>
   <h1>Pricing Crypto Event Contracts</h1>
-  <p class="lede">A fair-value and market-making framework for Kalshi and Polymarket BTC markets at 15-minute, hourly and daily tenors, plus a test of the pricing core against 6 months of settled Kalshi contracts and Kalshi's own quotes.</p>
-  <p class="meta">Kailen Vyas · November 2026 · Code and data pipeline in a private GitHub repo (access on request)</p>
+  <p class="lede">A fair-value and market-making framework for Kalshi and Polymarket crypto markets at 15-minute, hourly, daily and longer tenors, tested out of sample against a year of Kalshi data: settled outcomes, Kalshi's own quotes, and 7.8 million real fills.</p>
+  <p class="meta">Kailen Vyas · November 2026 · Code, data pipeline and full write-up: <a href="https://github.com/kailenvyas121/pinpredict-crypto-pricer">github.com/kailenvyas121/pinpredict-crypto-pricer</a></p>
 </header>
 
 <section>
   <div class="eyebrow">Summary</div>
   <h2>The short version</h2>
   <div class="prose" style="display:flex;flex-direction:column;gap:14px">
-    <p>These contracts are <b>short-dated digital options on a published index</b>. Kalshi settles on the 60-second average of CF Benchmarks' BRTI; Polymarket's short markets settle on a Chainlink 60-second TWAP. Fair value is the probability the settlement average finishes above the strike. That probability depends on three things: distance to the strike, how much the index can move before settlement (volatility × √time, reduced by the averaging), and the shape of the move distribution (BTC has fat tails).</p>
-    <p>Nothing else enters as a "weight" on price. Perp funding, open interest and options IV only matter through the volatility forecast. Drift is set to zero at these horizons.</p>
-    <p>I built that pricing core in five layers and scored every layer out of sample. The result splits by tenor, and the split tells you where a market maker can compete:</p>
+    <p>A crypto prediction contract is a <b>digital option on a published index</b>. Kalshi settles on the 60-second average of CF Benchmarks' BRTI; Polymarket's short markets settle on Chainlink or Binance prices. Fair value is the probability that the settlement value lands on the paying side. It depends on three things: distance to the strike, how far the index can move before settlement (volatility × √time, reduced by the averaging), and how fat the tails are.</p>
+    <p>Bitcoin has no cash flows, so over minutes to days its fair value is entirely a question of the <b>distribution of moves</b>. Every input that matters for that distribution is public, 24/7 market data. That makes this a numbers problem. It does not make it easy: BTC runs about 45% volatility with fat tails, and news hits it as jumps.</p>
+    <p>I built the pricer in layers, scored every layer on data it never saw, and then asked the question a market maker cares about: <b>do makers make money on these contracts, and can the model tell good fills from bad ones?</b></p>
   </div>
   <div class="kpis">
-    <div class="kpi"><span class="k">Daily ladders</span><span class="v good num">Beats mid</span><span class="d">Brier 0.0925 vs 0.0930. The model carries 80% of the weight in a blend. Only 104 events, so the 95% CI includes zero.</span></div>
-    <div class="kpi"><span class="k">Hourly ladders</span><span class="v even num">Ties mid</span><span class="d">Brier 0.0923 vs 0.0920. Gap is 0.3 thousandths, and a 50/50 blend beats the mid alone.</span></div>
-    <div class="kpi"><span class="k">15-minute up/down</span><span class="v bad num">Behind mid</span><span class="d">Brier 0.1653 vs 0.1622, about 4¢ average gap. Index measurement is the likely bottleneck, not the model.</span></div>
+    <div class="kpi"><span class="k">vs public approaches</span><span class="v good num">Beats both</span><span class="d">Better than options-implied (DVOL Black-Scholes) and Binance-price models at every tenor; 95% intervals exclude zero.</span></div>
+    <div class="kpi"><span class="k">vs the Kalshi book</span><span class="v even num">Ties hourly</span><span class="d">Ties the mid on hourly, slightly ahead on daily (small sample), behind on 15-minute. A blend with the mid beats the mid alone on hourly and daily.</span></div>
+    <div class="kpi"><span class="k">Maker economics</span><span class="v good num">+0.61¢ → +1.85¢</span><span class="d">The average hourly maker earns 0.61¢ per contract at settlement. Fills the model rates favorable earn 1.85¢ (95% CI 0.51 to 3.23).</span></div>
   </div>
   <div class="callout">
     <strong>What this means for PinPredict</strong>
-    <p>With free one-minute data, a first-principles model already prices hourly and daily ladders as well as Kalshi's book. That makes it safe to quote around those markets, which is where retail flow concentrates. The 15-minute market rewards measuring the index precisely, sub-second, more than it rewards modeling. So the first infrastructure dollar goes into a live BRTI replica, and 15-minute quoting waits until that replica matches Kalshi's own index stream.</p>
+    <p>Makers on Kalshi's BTC markets are paid, the model already prices hourly and daily contracts as well as the book, and it roughly triples the hourly maker's edge by telling it where to stand. Start on hourly and daily, where the latency bar is lowest and retail flow concentrates. Bring in 15-minute markets once a sub-second index replica and volatility read close the remaining gap. Use positioning data and the news feed for <i>risk</i> (widening, pulling, sizing), not for fair value. Our data shows they don't forecast price; they describe danger.</p>
   </div>
 </section>
 
@@ -172,52 +172,53 @@ footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--li
   <h2>What is being priced</h2>
   <div class="scroll">
     <table class="wide">
-      <thead><tr><th>Market</th><th>Pays YES if</th><th>Settlement index</th><th>Structure</th><th>Note</th></tr></thead>
+      <thead><tr><th>Market</th><th>Pays YES if</th><th>Settlement</th><th>Note</th></tr></thead>
       <tbody>
-        <tr><td><b>Kalshi 15-min</b> <span class="mono">KXBTC15M</span></td><td>Ā(close) ≥ Ā(open). A tie pays YES</td><td>BRTI, 60s simple average of 1-second prints</td><td>One contract per window. The strike equals the prior window's settlement (verified on 27,093 windows)</td><td>Bots are the majority of volume</td></tr>
-        <tr><td><b>Kalshi hourly</b> <span class="mono">KXBTCD</span></td><td>Ā(T) &gt; K</td><td>BRTI, 60s average</td><td>Ladder of about 150 strikes, $100 apart</td><td>24/7 except a Thursday 3–5 AM ET pause</td></tr>
-        <tr><td><b>Kalshi daily</b> <span class="mono">KXBTCD</span></td><td>Ā(5 PM ET) &gt; K</td><td>BRTI, 60s average</td><td>Wide ladder; range buckets in <span class="mono">KXBTC</span></td><td>Retail-heavy (Robinhood, Webull, Coinbase routing)</td></tr>
-        <tr><td><b>Polymarket 15-min</b></td><td>End price ≥ start price</td><td>Chainlink BTC/USD 60s TWAP</td><td>Up/down</td><td>A different index from Kalshi, so it needs a basis model. Start-price convention still to be confirmed</td></tr>
-        <tr><td><b>Polymarket hourly</b></td><td>1h candle close ≥ open</td><td>Binance BTC/USDT 1h candle</td><td>Up/down</td><td>Settles on a USDT, single-exchange print. Binance runs about +5 bp vs BRTI (measured)</td></tr>
+        <tr><td><b>Kalshi 15-min</b> <span class="mono">KXBTC15M</span></td><td>Average at close ≥ average at open (tie pays YES)</td><td>BRTI, 60 one-second prints</td><td>The strike equals the prior window's settlement (verified on 27,093 windows). Bot-heavy</td></tr>
+        <tr><td><b>Kalshi hourly / daily</b> <span class="mono">KXBTCD</span></td><td>Average at T &gt; K</td><td>BRTI, 60-second average</td><td>~150 strikes per event. Daily settles at 5 PM ET. Retail-heavy</td></tr>
+        <tr><td><b>Polymarket US 15-min</b></td><td>Up/down</td><td>BRTI, 60-second average (per its CFTC filings)</td><td>Same engine as Kalshi</td></tr>
+        <tr><td><b>Polymarket intl. 5m/15m/4h</b></td><td>End ≥ start</td><td>Chainlink BTC/USD 60-second TWAP vs the price at the start</td><td>Compared two single prints until mid-2026. Separate index; needs a basis model. Closed to US persons</td></tr>
+        <tr><td><b>Polymarket intl. hourly</b></td><td>1h candle close ≥ open</td><td>Binance BTC/USDT 1h candle</td><td>A single USDT print, about +5 bp vs BRTI (measured). Easiest to push near the close</td></tr>
+        <tr><td><b>Weekly to year-end, touch</b></td><td>Above K at T; hits X before T</td><td>Same indices</td><td>Priced from the options smile; touch by Monte Carlo with the venue's monitoring rule</td></tr>
       </tbody>
     </table>
   </div>
-  <p class="caption">Fees: Kalshi taker fee is ceil(0.07·C·P(1−P)), 1.75¢ per contract at 50¢. Polymarket's taker fee is 0.07·p(1−p), with 20% rebated to makers and a 150 ms taker delay. Kalshi auctions liquidity-provider slots: 2 on crypto 15-minute, 1 on hourly and daily.</p>
+  <p class="caption">Fees, verified: Kalshi taker pays ceil(0.07·C·P(1−P)), 1.75¢ at 50¢; these series charge makers nothing (API fee_type "quadratic"). Polymarket taker fee 0.07·p(1−p), with 20% rebated to makers. Kalshi auctions liquidity-provider slots (2 on crypto 15-minute, 1 on hourly/daily; programs end 12/31/26) and pays 3.5% APY on cash and position value.</p>
 </section>
 
 <section>
   <div class="eyebrow">Flowchart 1 · The engine</div>
   <h2>How one price gets made</h2>
-  <p class="prose">Every market runs through the same six stages. Inputs on the left feed each stage. The engine reruns from stage 2 on every index tick; the closed-form pricing takes microseconds, so speed is limited by data and order latency, not math.</p>
+  <p class="prose">Every market runs through the same six stages. The engine reruns on every index tick; the pricing math takes microseconds, so speed is limited by data and order latency.</p>
   <div class="flow">
     <div class="stage">
-      <div class="in"><span class="lbl">Inputs</span><div><span class="chip">Coinbase</span><span class="chip">Kraken</span><span class="chip">Bitstamp</span><span class="chip">Gemini</span><span class="chip">LMAX</span><span class="chip">Bullish</span><span class="chip">Crypto.com</span><span class="chip">Kalshi BRTI stream</span><span class="chip">Chainlink stream</span></div></div>
-      <div class="body"><h3><span class="n">1</span>Replicate the settlement index</h3><p>Rebuild BRTI from the seven constituent USD order books every 200 ms, using CF Benchmarks' published method (depth-weighted mid, stale and outlier books dropped). Validate against Kalshi's own <span class="mono">cfbenchmarks_value</span> stream. Polymarket gets a separate Chainlink reference, plus a live basis between the two.</p><p class="math">S_t = index level now · tested: free 1-min proxy tracks BRTI to 1.2 bp median</p></div>
+      <div class="in"><span class="lbl">Inputs</span><div><span class="chip">Coinbase</span><span class="chip">Kraken</span><span class="chip">Bitstamp</span><span class="chip">Gemini</span><span class="chip">LMAX</span><span class="chip">Bullish</span><span class="chip">Crypto.com</span><span class="chip">Kalshi BRTI stream</span><span class="chip">Chainlink</span></div></div>
+      <div class="body"><h3><span class="n">1</span>Replicate the settlement index</h3><p>Rebuild BRTI from the seven constituent USD order books every 200 ms with CF Benchmarks' method. Validate against Kalshi's live BRTI stream. Polymarket gets its own Chainlink or Binance reference and a basis to BRTI.</p><p class="math">Tested: a free two-exchange proxy tracks the settlement to 1.2 bp median. Pricing off Binance USDT instead misses the market by 21¢ on 15-minute contracts</p></div>
     </div>
     <div class="arrow"></div>
     <div class="stage">
-      <div class="in"><span class="lbl">Inputs</span><div><span class="chip">1-min realized var</span><span class="chip">ET time-of-week</span><span class="chip">Deribit DVOL</span><span class="chip">Macro calendar</span><span class="chip">Perp OI / funding</span></div></div>
-      <div class="body"><h3><span class="n">2</span>Forecast variance to expiry</h3><p>Log-HAR on de-seasonalized realized variance (last 1h, 24h, 7d) plus DVOL, then multiplied by the expected variance profile of the exact minutes left (the US open runs about 3× normal variance, weekends about 0.67×). Event hours (CPI, FOMC) get a bump. Leverage data (OI, funding, liquidations) can raise jump intensity here; it never shifts the mean.</p><p class="math">V = level(t) × Σ season(minute) over [t, T]</p></div>
+      <div class="in"><span class="lbl">Inputs</span><div><span class="chip">Realized var 1h/24h/7d</span><span class="chip">ET time of week</span><span class="chip">Deribit DVOL</span><span class="chip">Macro calendar</span></div></div>
+      <div class="body"><h3><span class="n">2</span>Forecast variance for the exact minutes left</h3><p>Log-HAR on realized variance plus DVOL, times the variance profile of the minutes left (US open ~3× average, weekends 0.67×), plus release bumps (first 5 minutes after CPI, payrolls or FOMC: 7.5× forecast).</p><p class="math">V = level(t) × Σ season(minute) over [t, T] + event bumps</p></div>
     </div>
     <div class="arrow"></div>
     <div class="stage">
-      <div class="in"><span class="lbl">Inputs</span><div><span class="chip">Window length w = 60s</span><span class="chip">Prints already locked</span></div></div>
-      <div class="body"><h3><span class="n">3</span>Adjust for averaged settlement</h3><p>The payoff is on a 60-second average, so the final minute adds less variance than a point price would. Before the window, remove 0.658 of the last minute's variance. Inside the window, the locked-in prints define an effective strike K* for the remaining prints.</p><p class="math">V_eff = V − 0.658·σ²w · inside: K* = (nK − Σ locked) / m</p></div>
+      <div class="in"><span class="lbl">Inputs</span><div><span class="chip">60 one-second prints</span><span class="chip">Prints already locked</span></div></div>
+      <div class="body"><h3><span class="n">3</span>Adjust for averaged settlement</h3><p>The final minute counts at about a third of a point print. Remove 0.658 of its variance; inside the window, locked prints define an effective strike.</p><p class="math">Tested: final-minute gap to mid 13.3¢ → 8.8¢</p></div>
     </div>
     <div class="arrow"></div>
     <div class="stage">
-      <div class="in"><span class="lbl">Inputs</span><div><span class="chip">ν ≈ 4.2–4.5 fitted</span><span class="chip">Deribit smile (daily+)</span></div></div>
-      <div class="body"><h3><span class="n">4</span>Choose the shape of the move</h3><p>Scale-matched Student-t instead of a normal. BTC's standardized 15-minute returns have excess kurtosis near 10. Fat tails pull near-the-money strikes toward 0 or 1 and add value far out. For daily and longer tenors, Deribit's smile can anchor the tails.</p><p class="math">P(Ā_T &gt; K) = 1 − F_ν( ln(K/S) / √V_eff )</p></div>
+      <div class="in"><span class="lbl">Inputs</span><div><span class="chip">ν ≈ 4.2–4.5</span><span class="chip">Deribit smile (daily+)</span></div></div>
+      <div class="body"><h3><span class="n">4</span>Use fat tails</h3><p>Scale-matched Student-t. This was the largest single improvement. A normal overprices cheap strikes by 4–5¢ vs outcomes; the t is within about 1–1.5¢.</p><p class="math">P(Ā_T &gt; K) = 1 − F_ν( ln(K/S) / √V_eff )</p></div>
     </div>
     <div class="arrow"></div>
     <div class="stage">
-      <div class="in"><span class="lbl">Inputs</span><div><span class="chip">Strike(s)</span><span class="chip">Contract rules</span></div></div>
-      <div class="body"><h3><span class="n">5</span>Map one distribution to every contract</h3><p>The same terminal distribution prices the whole ladder (P above K), range buckets (CDF differences) and up/down (strike = opening average). Using one distribution keeps the book coherent: digitals are monotone in strike and buckets sum to one, so nobody can arbitrage the ladder against itself.</p></div>
+      <div class="in"><span class="lbl">Inputs</span><div><span class="chip">Strikes</span><span class="chip">Contract rules</span></div></div>
+      <div class="body"><h3><span class="n">5</span>Price every contract from one distribution</h3><p>Ladders, buckets and up/down come from the same distribution, so prices fall with strike and buckets sum to one. Nobody can arbitrage the quotes against each other.</p></div>
     </div>
     <div class="arrow"></div>
     <div class="stage out">
-      <div class="in"><span class="lbl">Inputs</span><div><span class="chip">Inventory</span><span class="chip">Binance/Bybit perp lead</span><span class="chip">Book state</span><span class="chip">Fees and rebates</span></div></div>
-      <div class="body"><h3><span class="n">6</span>Quote, protect, hedge</h3><p>Shade fair value by inventory. Rest at the touch only where expected spread capture plus rebate beats expected pick-off loss. Pull quotes when the perp (which leads spot by 100–300 ms) moves fair value past the edge. Hedge the net delta of the whole book in perps, not contract by contract. Ladder-sweep caps and kill switches sit on top.</p><p class="math">reservation = FV − γ·q·Var_h · rest iff spread + rebate − λ·E[pick-off] − inventory cost &gt; 0</p></div>
+      <div class="in"><span class="lbl">Inputs</span><div><span class="chip">Inventory</span><span class="chip">Perp ticks</span><span class="chip">News alerts</span><span class="chip">Liquidations / OI</span></div></div>
+      <div class="body"><h3><span class="n">6</span>Quote, protect, hedge</h3><p>Shade for inventory; rest where the model edge beats expected pick-off loss. Pull when the perp moves (it leads spot by 100–300 ms) or a news alert fires. Hedge the book's net delta in perps. Ladder-sweep caps and kill switches on top.</p></div>
     </div>
   </div>
 </section>
@@ -225,56 +226,55 @@ footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--li
 <section>
   <div class="eyebrow">Flowchart 2 · Per market</div>
   <h2>What changes from one market to the next</h2>
-  <p class="prose">One index tick fans out to every live contract. The stages are the same; what dominates each market's price, and its main risk, is not.</p>
   <div class="scroll">
     <div class="fan">
-      <div class="root">New index tick<small>BRTI replica · Chainlink · perp lead</small></div>
+      <div class="root">New index tick<small>BRTI replica · Chainlink · perp lead · news</small></div>
       <div class="bus"></div>
       <div class="lanes">
         <div class="lane">
           <div class="hd">Kalshi 15-min<small>KXBTC15M</small></div>
-          <div class="cell"><b>Strike</b>Prior window's 60s average, known at the open</div>
-          <div class="cell"><b>Dominant input</b>Index level vs strike, measured sub-second. ~3¢ moves per bp of BTC with 5 min left</div>
-          <div class="cell"><b>Vol</b>Fast realized var (EWMA). DVOL adds almost nothing</div>
-          <div class="cell"><b>Special handling</b>Averaging matters most in the final 3 min. Partial-average strike inside the last minute</div>
-          <div class="cell"><b>Main risk</b>Getting picked off by faster index readers</div>
-          <div class="cell"><b>Status</b>Behind mid. Fix the index first</div>
+          <div class="cell"><b>Dominant input</b>Index level, sub-second. ~1.5–6¢ per bp of BTC</div>
+          <div class="cell"><b>Vol</b>Fast realized vol; DVOL adds little</div>
+          <div class="cell"><b>Special</b>Averaging in the last 3 minutes</div>
+          <div class="cell"><b>Main risk</b>Pick-off by faster index readers</div>
+          <div class="cell"><b>Model vs mid</b>Behind (4.3¢ gap)</div>
+          <div class="cell"><b>Makers earn</b>+0.48¢ per contract</div>
         </div>
         <div class="lane">
           <div class="hd">Kalshi hourly<small>KXBTCD ladder</small></div>
-          <div class="cell"><b>Strike</b>~150 fixed strikes, $100 apart</div>
-          <div class="cell"><b>Dominant input</b>Variance forecast, including time-of-day for the minutes left</div>
-          <div class="cell"><b>Vol</b>HAR + season + DVOL, then t-tails</div>
-          <div class="cell"><b>Special handling</b>Ladder coherence across strikes. Event-hour bumps (CPI 8:30, FOMC 2:00 ET)</div>
-          <div class="cell"><b>Main risk</b>One BTC gap fills every strike on the way: ladder-sweep cap</div>
-          <div class="cell"><b>Status</b>Ties mid</div>
+          <div class="cell"><b>Dominant input</b>Variance forecast and time of day</div>
+          <div class="cell"><b>Vol</b>HAR + season + DVOL, t-tails</div>
+          <div class="cell"><b>Special</b>Release bumps; ladder coherence</div>
+          <div class="cell"><b>Main risk</b>A gap sweeps every strike</div>
+          <div class="cell"><b>Model vs mid</b>Tied</div>
+          <div class="cell"><b>Makers earn</b>+0.61¢; model-filtered +1.85¢</div>
         </div>
         <div class="lane">
           <div class="hd">Kalshi daily<small>KXBTCD 5 PM ET</small></div>
-          <div class="cell"><b>Strike</b>Wide ladder plus range buckets</div>
-          <div class="cell"><b>Dominant input</b>Tail shape and the 24h variance level</div>
-          <div class="cell"><b>Vol</b>HAR 24h with the largest DVOL weight. Deribit smile for far strikes</div>
-          <div class="cell"><b>Special handling</b>Fat tails are worth the most here. Delta hedging in perps starts to pay</div>
-          <div class="cell"><b>Main risk</b>Overnight jumps and weekend gaps</div>
-          <div class="cell"><b>Status</b>Beats mid (small sample)</div>
+          <div class="cell"><b>Dominant input</b>24h variance level and tails</div>
+          <div class="cell"><b>Vol</b>Largest DVOL weight; smile for far strikes</div>
+          <div class="cell"><b>Special</b>Fat tails matter most; perp hedging pays</div>
+          <div class="cell"><b>Main risk</b>Overnight and weekend gaps</div>
+          <div class="cell"><b>Model vs mid</b>Slightly ahead (small sample)</div>
+          <div class="cell"><b>Makers earn</b>+0.65¢ per contract</div>
         </div>
         <div class="lane poly">
-          <div class="hd">Polymarket 15-min<small>Chainlink TWAP</small></div>
-          <div class="cell"><b>Strike</b>Start price on Chainlink (convention to confirm)</div>
-          <div class="cell"><b>Dominant input</b>Chainlink level, not BRTI. Needs the BRTI–Chainlink basis</div>
-          <div class="cell"><b>Vol</b>Same forecast, applied to the Chainlink series</div>
-          <div class="cell"><b>Special handling</b>150 ms taker delay gives cancels a head start. 20% fee rebate to makers</div>
-          <div class="cell"><b>Main risk</b>Oracle and source divergence. Thin-hour pushes</div>
-          <div class="cell"><b>Status</b>Not yet tested</div>
+          <div class="hd">Polymarket 15-min<small>Chainlink TWAP / BRTI (US)</small></div>
+          <div class="cell"><b>Dominant input</b>Chainlink level; basis to BRTI</div>
+          <div class="cell"><b>Vol</b>Same forecast on the Chainlink series</div>
+          <div class="cell"><b>Special</b>Rule changed mid-2026; 20% maker rebate</div>
+          <div class="cell"><b>Main risk</b>Oracle divergence; thin-hour pushes</div>
+          <div class="cell"><b>Model vs mid</b>Not yet tested</div>
+          <div class="cell"><b>Makers earn</b>Not yet measured</div>
         </div>
         <div class="lane poly">
           <div class="hd">Polymarket hourly<small>Binance 1h candle</small></div>
-          <div class="cell"><b>Strike</b>Binance BTC/USDT 1h open</div>
-          <div class="cell"><b>Dominant input</b>Binance's own last trade at the close: a point print, not an average</div>
-          <div class="cell"><b>Vol</b>Same forecast on Binance USDT, no averaging discount</div>
-          <div class="cell"><b>Special handling</b>USDT, single exchange, about +5 bp vs BRTI. Easiest print to push</div>
-          <div class="cell"><b>Main risk</b>Close-print manipulation. Widen near the close</div>
-          <div class="cell"><b>Status</b>Not yet tested</div>
+          <div class="cell"><b>Dominant input</b>Binance last trade at the close</div>
+          <div class="cell"><b>Vol</b>Same forecast; no averaging discount</div>
+          <div class="cell"><b>Special</b>USDT single-exchange print</div>
+          <div class="cell"><b>Main risk</b>Close-print manipulation</div>
+          <div class="cell"><b>Model vs mid</b>Not yet tested</div>
+          <div class="cell"><b>Makers earn</b>Not yet measured</div>
         </div>
       </div>
     </div>
@@ -283,291 +283,162 @@ footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--li
 
 <section>
   <div class="eyebrow">Worked example</div>
-  <h2>Pricing one 15-minute contract by hand</h2>
-  <div class="prose" style="display:flex;flex-direction:column;gap:12px">
-    <p>BTC 3:00–3:15 window. It is 3:10, so 5 minutes are left. The start (strike) was $80,000; the index is $80,060. Volatility is 45% a year, or 0.062% per minute.</p>
-  </div>
+  <h2>Pricing a 15-minute contract by hand</h2>
+  <p class="prose">3:10 PM in a 3:00–3:15 window. Start price $80,000, BTC now $80,060, volatility 45% a year (0.062% per minute).</p>
   <div class="scroll">
     <table class="wide">
-      <thead><tr><th>Step</th><th class="r">Move size (1σ, $)</th><th class="r">Fair value of YES</th><th>What changed</th></tr></thead>
+      <thead><tr><th>Step</th><th class="r">One-sigma move</th><th class="r">Fair value of YES</th><th>What changed</th></tr></thead>
       <tbody>
-        <tr><td>Normal, point settlement</td><td class="r">111</td><td class="r">70.5¢</td><td>$60 above with a $111 one-sigma move: z = 0.54</td></tr>
-        <tr><td>+ 60s averaging</td><td class="r">104</td><td class="r">71.9¢</td><td>The final minute counts at about one third, so less variance is left</td></tr>
-        <tr class="best"><td>+ Student-t tails (ν = 4.5)</td><td class="r">104</td><td class="r">76.2¢</td><td>Most moves are small and a few are huge, so a modest lead holds more often</td></tr>
-        <tr><td>Same, but vol doubles (CPI print)</td><td class="r">207</td><td class="r">64.2¢</td><td>Volatility is the input you forecast. Doubling it moves the price 12¢</td></tr>
-        <tr><td>Same, but 2 minutes left</td><td class="r">58</td><td class="r">88.7¢</td><td>Less time, less room to fall back below the strike</td></tr>
+        <tr><td>Normal, single-print settlement</td><td class="r">$111</td><td class="r">70.5¢</td><td>$60 above with a $111 one-sigma move: z = 0.54</td></tr>
+        <tr><td>+ 60-second averaging</td><td class="r">$104</td><td class="r">71.9¢</td><td>The final minute counts at about a third</td></tr>
+        <tr class="best"><td>+ fat tails (ν = 4.5)</td><td class="r">$104</td><td class="r">76.2¢</td><td>Most moves are small, so a modest lead holds more often</td></tr>
+        <tr><td>Same, but volatility doubles (a release)</td><td class="r">$207</td><td class="r">64.2¢</td><td>Volatility is the input you forecast</td></tr>
+        <tr><td>Same, but 2 minutes left</td><td class="r">$58</td><td class="r">88.7¢</td><td>Less time to fall back</td></tr>
       </tbody>
     </table>
   </div>
-  <p class="caption">Hourly example on the same inputs: strike $80,400 with 40 minutes left. A normal gives 14.0¢ and the t gives 10.3¢. If those 40 minutes fall in the 10–11 AM ET hour (about 3× normal variance), fair value rises to 21.8¢. Time of day alone is worth 11¢ on this contract.</p>
+  <p class="caption">Hourly strike $80,400 with 40 minutes left: 14.0¢ under a normal, 10.3¢ with fat tails, and 21.8¢ if those 40 minutes are the 10–11 AM ET hour. Time of day alone is worth 11¢.</p>
 </section>
 
 <section>
-  <div class="eyebrow">Test</div>
-  <h2>How it was tested</h2>
-  <div class="prose" style="display:flex;flex-direction:column;gap:12px">
-    <p><b>Data.</b> Every Kalshi BTC 15-minute and hourly/daily ladder contract from Nov 2025 to Oct 2026, with Kalshi's official settlement value and one-minute bid/ask history. Spot is a free BRTI proxy: the median of Coinbase and Bitstamp one-minute closes, both BRTI constituents. Also hourly Deribit DVOL and Binance spot and perps.</p>
-    <p><b>Split.</b> Everything the model learns (variance weights, the time-of-week profile, the tail parameter, a proxy-to-BRTI level offset, blend weights) is fit on contracts closing before 1 May 2026. The scores below are on contracts closing from 1 May to 27 Oct 2026, which the model never saw.</p>
-    <p><b>Rows.</b> One row per contract-minute with a real two-sided Kalshi quote (bid ≥ 1¢, ask ≤ 99¢, spread ≤ 10¢). The model sees only data up to that minute. Ladder minutes are sampled every 5 minutes. Test set: 144,255 rows over 11,517 fifteen-minute windows; 257,581 rows over 2,737 hourly events; 534,324 rows over 104 daily events.</p>
-    <p><b>Scores.</b> Brier score (mean squared error of the probability against the 0/1 outcome; lower is better), and the average gap to Kalshi's mid in cents. Confidence intervals resample whole events, because minutes within one contract are not independent.</p>
-  </div>
-</section>
-
-<section>
-  <div class="eyebrow">Results · Ablation</div>
-  <h2>What each layer is worth</h2>
-  <p class="prose">Bars show each model's Brier gap to the Kalshi mid, in thousandths. Shorter is better; past zero (green) beats the market.</p>
-  <div class="scroll">
-    <table class="wide bars">
-      <thead><tr><th>Model layer</th><th>Market</th><th class="r">Brier</th><th class="r">Gap to mid ×1000</th><th class="bar">Gap (scale 0 → 11.5)</th><th class="r">Avg |model − mid|</th></tr></thead>
-      <tbody>
-        <tr><td>v0 Flat 30-day vol, normal</td><td>15-min</td><td class="r">0.1737</td><td class="r">+11.5</td><td class="bar"><div class="track"><div class="fill" style="width:100%"></div></div></td><td class="r">7.8¢</td></tr>
-        <tr><td>v1 EWMA realized vol</td><td>15-min</td><td class="r">0.1664</td><td class="r">+4.2</td><td class="bar"><div class="track"><div class="fill" style="width:36.3%"></div></div></td><td class="r">4.7¢</td></tr>
-        <tr><td>v2 HAR + time of week</td><td>15-min</td><td class="r">0.1668</td><td class="r">+4.6</td><td class="bar"><div class="track"><div class="fill" style="width:39.8%"></div></div></td><td class="r">5.0¢</td></tr>
-        <tr><td>v3 + DVOL</td><td>15-min</td><td class="r">0.1664</td><td class="r">+4.2</td><td class="bar"><div class="track"><div class="fill" style="width:36.4%"></div></div></td><td class="r">4.8¢</td></tr>
-        <tr class="best"><td>v4 + Student-t tails</td><td>15-min</td><td class="r">0.1653</td><td class="r">+3.0</td><td class="bar"><div class="track"><div class="fill best" style="width:26.4%"></div></div></td><td class="r">4.3¢</td></tr>
-        <tr class="ref"><td>Kalshi mid</td><td>15-min</td><td class="r">0.1622</td><td class="r">0</td><td class="bar"></td><td class="r">–</td></tr>
-
-        <tr><td>v0 Flat 30-day vol, normal</td><td>Hourly</td><td class="r">0.0992</td><td class="r">+7.2</td><td class="bar"><div class="track"><div class="fill" style="width:62.9%"></div></div></td><td class="r">6.1¢</td></tr>
-        <tr><td>v1 EWMA realized vol</td><td>Hourly</td><td class="r">0.0940</td><td class="r">+2.0</td><td class="bar"><div class="track"><div class="fill" style="width:17.7%"></div></div></td><td class="r">3.1¢</td></tr>
-        <tr><td>v2 HAR + time of week</td><td>Hourly</td><td class="r">0.0937</td><td class="r">+1.7</td><td class="bar"><div class="track"><div class="fill" style="width:14.9%"></div></div></td><td class="r">3.3¢</td></tr>
-        <tr><td>v3 + DVOL</td><td>Hourly</td><td class="r">0.0933</td><td class="r">+1.3</td><td class="bar"><div class="track"><div class="fill" style="width:11.3%"></div></div></td><td class="r">3.0¢</td></tr>
-        <tr class="best"><td>v4 + Student-t tails</td><td>Hourly</td><td class="r">0.0923</td><td class="r">+0.3</td><td class="bar"><div class="track"><div class="fill best" style="width:2.8%"></div></div></td><td class="r">2.2¢</td></tr>
-        <tr class="ref"><td>Kalshi mid</td><td>Hourly</td><td class="r">0.0920</td><td class="r">0</td><td class="bar"></td><td class="r">–</td></tr>
-
-        <tr><td>v0 Flat 30-day vol, normal</td><td>Daily</td><td class="r">0.0964</td><td class="r">+3.4</td><td class="bar"><div class="track"><div class="fill" style="width:29.3%"></div></div></td><td class="r">3.9¢</td></tr>
-        <tr><td>v1 EWMA realized vol</td><td>Daily</td><td class="r">0.0948</td><td class="r">+1.8</td><td class="bar"><div class="track"><div class="fill" style="width:15.7%"></div></div></td><td class="r">3.8¢</td></tr>
-        <tr><td>v2 HAR + time of week</td><td>Daily</td><td class="r">0.0947</td><td class="r">+1.7</td><td class="bar"><div class="track"><div class="fill" style="width:14.6%"></div></div></td><td class="r">2.8¢</td></tr>
-        <tr><td>v3 + DVOL</td><td>Daily</td><td class="r">0.0939</td><td class="r">+0.9</td><td class="bar"><div class="track"><div class="fill" style="width:7.9%"></div></div></td><td class="r">2.4¢</td></tr>
-        <tr class="best"><td>v4 + Student-t tails</td><td>Daily</td><td class="r">0.0925</td><td class="r">−0.5</td><td class="bar"><div class="track"><div class="fill neg" style="width:4.7%"></div></div></td><td class="r">1.9¢</td></tr>
-        <tr class="ref"><td>Kalshi mid</td><td>Daily</td><td class="r">0.0930</td><td class="r">0</td><td class="bar"></td><td class="r">–</td></tr>
-      </tbody>
-    </table>
-  </div>
-  <p class="caption">Every version includes the averaging adjustment and the +0.38 bp proxy-to-BRTI offset, both fit on the training period. Removing the offset costs 0.6 thousandths of Brier on 15-minute contracts. Log-loss ranks the models the same way.</p>
-
-  <div class="grid2">
-    <div class="panel">
-      <h3>Model vs the market</h3>
-      <div class="scroll"><table>
-        <thead><tr><th>Market</th><th class="r">v4 − mid ×1000</th><th class="r">95% CI (by event)</th></tr></thead>
-        <tbody>
-          <tr><td>15-min</td><td class="r">+3.03</td><td class="r">+2.43 to +3.65</td></tr>
-          <tr><td>Hourly</td><td class="r">+0.32</td><td class="r">+0.07 to +0.57</td></tr>
-          <tr><td>Daily</td><td class="r">−0.54</td><td class="r">−1.20 to +0.13</td></tr>
-        </tbody>
-      </table></div>
-      <p class="caption">Hourly is statistically behind but by a tiny margin. Daily leads, but on 104 events the interval crosses zero.</p>
-    </div>
-    <div class="panel">
-      <h3>Does the model add information to the mid?</h3>
-      <div class="scroll"><table>
-        <thead><tr><th>Market</th><th class="r">Weight on model</th><th class="r">Blend Brier</th><th class="r">Mid Brier</th></tr></thead>
-        <tbody>
-          <tr><td>15-min</td><td class="r">0.26</td><td class="r">0.16232</td><td class="r">0.16221</td></tr>
-          <tr><td>Hourly</td><td class="r">0.51</td><td class="r">0.09191</td><td class="r">0.09200</td></tr>
-          <tr><td>Daily</td><td class="r">0.80</td><td class="r">0.09246</td><td class="r">0.09300</td></tr>
-        </tbody>
-      </table></div>
-      <p class="caption">Weight fit on the training period (blend = mid + w·(model − mid)), applied out of sample. On hourly and daily the blend beats the mid alone, so the model knows something the book does not.</p>
-    </div>
-  </div>
-</section>
-
-<section>
-  <div class="eyebrow">Results · Fitted parameters</div>
-  <h2>The weights</h2>
-  <p class="prose">There are two sets of weights in this model. Inside the variance forecast, a regression decides how much recent realized variance and DVOL count. In the price, those feed one number, σ√τ. Spot, strike and the tail parameter enter through the probability formula, not through weights.</p>
-  <div class="grid2">
-    <div class="panel">
-      <h3>Variance forecast (log-HAR, fit on train)</h3>
-      <div class="scroll"><table>
-        <thead><tr><th>Regressor (log)</th><th class="r">Next 1h</th><th class="r">Next 24h</th></tr></thead>
-        <tbody>
-          <tr><td>Realized var, last 1h</td><td class="r">0.52</td><td class="r">0.17</td></tr>
-          <tr><td>Realized var, last 24h</td><td class="r">0.35</td><td class="r">0.38</td></tr>
-          <tr><td>Realized var, last 7d</td><td class="r">0.01</td><td class="r">0.14</td></tr>
-          <tr><td>Deribit DVOL²</td><td class="r">0.30</td><td class="r">0.40</td></tr>
-        </tbody>
-      </table></div>
-      <p class="caption">Elasticities: a 10% rise in last-hour variance lifts the next-hour forecast about 5%. Short tenors listen to the last hour; daily tenors lean on DVOL and the 24h level. Realized variance is de-seasonalized before the fit, then re-seasonalized for the minutes being priced.</p>
-    </div>
-    <div class="panel">
-      <h3>Time of week (variance multiplier, ET)</h3>
-      <div class="scroll"><table>
-        <thead><tr><th>Window</th><th class="r">× average variance</th></tr></thead>
-        <tbody>
-          <tr><td>Weekday 12–7 AM</td><td class="r">0.55–0.73</td></tr>
-          <tr><td>Weekday 9–10 AM (US open at 9:30)</td><td class="r">2.61</td></tr>
-          <tr><td>Weekday 10–11 AM</td><td class="r">3.02</td></tr>
-          <tr><td>Weekday 11 AM–1 PM</td><td class="r">1.67–2.07</td></tr>
-          <tr><td>Weekday 10 PM–midnight</td><td class="r">0.59–0.68</td></tr>
-          <tr><td>Weekend average</td><td class="r">0.67</td></tr>
-        </tbody>
-      </table></div>
-      <p class="caption">Variance, not vol: 3× variance is about 1.7× vol. A 15-minute window at 10 AM is a different contract from one at 3 AM.</p>
-    </div>
-    <div class="panel">
-      <h3>Other fitted values</h3>
-      <ul>
-        <li><b>Tail parameter ν:</b> 4.5 for 15-minute, 4.2 for 1-hour horizons. Standardized returns show excess kurtosis of 9.7 and 8.6.</li>
-        <li><b>Proxy-to-BRTI offset:</b> +0.38 bp. Kalshi's settlement runs slightly above the Coinbase/Bitstamp median.</li>
-        <li><b>Averaging discount:</b> 0.658 of the final minute's variance. This is the exact value for 60 one-second prints, checked by Monte Carlo in the test suite.</li>
-        <li><b>Drift:</b> zero.</li>
-      </ul>
-    </div>
-    <div class="panel">
-      <h3>Market-implied vs realized vol</h3>
-      <div class="scroll"><table>
-        <thead><tr><th>Market</th><th class="r">Mid implies</th><th class="r">Outcomes reward</th></tr></thead>
-        <tbody>
-          <tr><td>15-min</td><td class="r">1.02×</td><td class="r">0.96×</td></tr>
-          <tr><td>Hourly</td><td class="r">1.00×</td><td class="r">0.96×</td></tr>
-          <tr><td>Daily</td><td class="r">1.06×</td><td class="r">0.92×</td></tr>
-        </tbody>
-      </table></div>
-      <p class="caption">The vol multiple of our forecast that best fits the Kalshi mid, compared with the multiple that best fits outcomes. The book prices slightly more vol than gets realized, most of all on dailies. That small vol premium is a maker's friend.</p>
-    </div>
-  </div>
-</section>
-
-<section>
-  <div class="eyebrow">Results · Findings</div>
-  <h2>What the test showed</h2>
-  <div class="grid2">
-    <div class="panel">
-      <h3>Fat tails are the biggest single fix</h3>
-      <p>Adding the Student-t improved every tenor, most of all hourly (gap to mid cut from 1.3 to 0.3 thousandths). On the cheap side of the ladder, 0.5–1.5σ out of the money:</p>
-      <ul>
-        <li>The normal model prices these contracts 2–3¢ <i>above</i> the Kalshi mid.</li>
-        <li>They actually paid out about 2¢ <i>below</i> the mid.</li>
-        <li>So a normal model overprices them by 4–5¢. The t-model sits within about 1¢ of realized.</li>
-      </ul>
-      <p>The mid itself overprices these longshots by about 2¢. That matches the favorite-longshot bias documented on Kalshi, and it argues for leaning toward selling those strikes.</p>
-    </div>
-    <div class="panel">
-      <h3>Averaging matters in the last few minutes</h3>
-      <p>On 15-minute contracts, the average gap to mid in the final minute falls from 13.3¢ to 8.8¢ with the adjustment, and from 6.6¢ to 5.3¢ with 1–3 minutes left. It is irrelevant beyond about 10 minutes and on hourly and daily, as the math predicts.</p>
-    </div>
-    <div class="panel">
-      <h3>The 15-minute gap is likely an index problem</h3>
-      <p>The gap to mid grows as expiry nears: 3.9¢ with 10–15 minutes left, 5.3¢ at 1–3 minutes, 8.8¢ in the final minute. That tracks the contract's sensitivity to the index. With 5 minutes left an at-the-money contract moves about 3¢ per basis point of BTC, and the free one-minute proxy misses BRTI by 1.2 bp at the median (5.8 bp at p95). The market sees the index sub-second; this test saw one-minute closes from two of seven exchanges. <span class="tag r">Inference</span> The fix is stage 1, not a better model.</p>
-    </div>
-    <div class="panel">
-      <h3>What didn't help, or wasn't tested</h3>
-      <ul>
-        <li>The time-of-week profile beat plain EWMA on hourly and daily but not on 15-minute. A fast EWMA already reflects the current regime over a 15-minute window.</li>
-        <li>DVOL is a 30-day vol. It carries real weight for dailies and adds almost nothing to 15-minute pricing.</li>
-        <li>Funding, open interest, sentiment: not in this model. An earlier check found funding has no directional signal at these horizons (correlation −0.02 with the next 8h return). OI and liquidations are candidates for the jump-intensity input, still to test.</li>
-        <li>Not tested yet: macro-event variance bumps, Polymarket, the partial-average strike inside the final minute (needs 1-second data), and simulated market-making P&amp;L.</li>
-      </ul>
-    </div>
-  </div>
-  <p class="caption"><span class="tag m">Measured</span> All numbers in this section come from the out-of-sample test above unless tagged otherwise. Caveats: Kalshi one-minute candles give end-of-minute quotes, not executable fills; the BRTI proxy is not the licensed index; daily results rest on 104 events.</p>
-</section>
-
-<section>
-  <div class="eyebrow">Market making</div>
-  <h2>From a fair value to a quote</h2>
-  <div class="grid2">
-    <div class="panel">
-      <h3>Where the money comes from</h3>
-      <ul>
-        <li>Spread capture against retail flow, concentrated in hourly and daily markets. Bots are 55–62% of 15-minute volume but about 31% of daily volume.</li>
-        <li>Kalshi LP rewards (auctioned slots). Polymarket's 20% maker fee rebate.</li>
-        <li>The small vol premium the book carries, and the longshot overpricing.</li>
-        <li>Netting one book across every strike and tenor on the same index. Opposite positions hedge each other, so the book can quote tighter than single-market bots.</li>
-      </ul>
-    </div>
-    <div class="panel">
-      <h3>Where it gets lost</h3>
-      <ul>
-        <li><b>Pick-off.</b> At 15 minutes an at-the-money digital moves about 1.5¢ per bp of BTC, and the taker fee shields only about 1.2 bp of movement. In the final minute it is 5.8¢ per bp. Cancel latency is the defense.</li>
-        <li><b>Ladder sweeps.</b> One BTC gap fills every strike on the way, so aggregate resting size per direction needs a cap.</li>
-        <li><b>Hedging.</b> Per-contract perp hedges cost 2–7¢ at 15 minutes against under 1¢ of edge. Hedge the net book delta in bands instead.</li>
-      </ul>
-    </div>
-    <div class="panel">
-      <h3>Quote rules</h3>
-      <ul>
-        <li>Inventory skew in binary units: reservation = FV − γ·q·Var_h, where Var_h shrinks to p(1−p) at settlement.</li>
-        <li>The book is tick-bound (one tick wide about 92% of the time), so the decision is whether to rest at the touch and how much, not how wide.</li>
-        <li>Reprice on every perp tick. Pull when the fair-value move exceeds the half-spread plus fee.</li>
-        <li>Widen or step out for CPI, FOMC, thin overnight hours and alt series.</li>
-      </ul>
-    </div>
-    <div class="panel">
-      <h3>Risk limits and kill switches</h3>
-      <ul>
-        <li>Each expiry's book is a payoff vector over settlement values. Limit the exact worst-case loss per expiry.</li>
-        <li>Per-asset delta, a joint BTC/ETH shock grid (−3/−5/−8% in one minute), Kalshi's $25k-per-strike accountability.</li>
-        <li>Kill on stale or divergent index feeds, clock drift, realized vol above k× the model, drawdown, and Kalshi order-group fill triggers. Polymarket heartbeat dead-man switch.</li>
-      </ul>
-    </div>
-  </div>
-</section>
-
-<section>
-  <div class="eyebrow">Institutional build</div>
-  <h2>What it takes to run this for real</h2>
-  <p class="prose">This assumes PinPredict has its sports infrastructure (venue connectivity, risk, treasury) and adds what crypto needs. Each item is tied to the stage of the engine it serves.</p>
+  <div class="eyebrow">Test 1 · Accuracy</div>
+  <h2>Model vs the market and vs public approaches</h2>
+  <p class="prose">Fit on data before 1 May 2026; scored on May–October 2026. Rows are contract-minutes with a real two-sided Kalshi quote: 144k on 15-minute (11,517 windows), 258k on hourly (2,737 events), 534k on daily (104 events). Brier score, lower is better.</p>
   <div class="scroll">
     <table class="wide">
-      <thead><tr><th>Need</th><th>What to build or buy</th><th>Serves</th></tr></thead>
+      <thead><tr><th>Model</th><th class="r">15-min</th><th class="r">Hourly</th><th class="r">Daily</th><th class="r">Avg gap to mid (15m / 1h / 1d)</th></tr></thead>
       <tbody>
-        <tr><td><b>Index feeds</b></td><td>Direct WebSocket L2 from all seven BRTI constituents. Kalshi WebSocket with the <span class="mono">cfbenchmarks_value</span> entitlement as the reference. Chainlink Data Streams access for Polymarket. A CF Benchmarks data license if real-time BRTI is needed beyond Kalshi's stream</td><td>Stage 1</td></tr>
-        <tr><td><b>Lead and vol feeds</b></td><td>Binance, Bybit and OKX perp trades and books (lead and flow). Deribit options WebSocket for DVOL and the smile. OI and liquidations from exchange APIs</td><td>Stages 2, 4, 6</td></tr>
-        <tr><td><b>Hot path</b></td><td>Rust or C++ event loop: index replica at 200 ms, pricer on every tick, quoting engine, order gateways (Kalshi FIX/REST/WebSocket; Polymarket CLOB with signed orders). Target well under 200 ms tick-to-cancel. Cloud region chosen by measured round-trip to each venue</td><td>Stages 1, 5, 6</td></tr>
-        <tr><td><b>Time</b></td><td>PTP or chrony-disciplined clocks. Every event stamped in UTC nanoseconds at receipt. DST-safe scheduling (contract times are ET)</td><td>All</td></tr>
-        <tr><td><b>Tick store and replay</b></td><td>ClickHouse, kdb+ or Parquet on object storage. Record every feed and the venue books. Historical L2 from Tardis.dev or Kaiko for backfill. A replay simulator with queue position and latency for P&amp;L tests</td><td>Research, validation</td></tr>
-        <tr><td><b>Model ops</b></td><td>Nightly refit of the HAR weights, the time-of-week profile, ν and the index basis. A daily calibration report: model vs mid, Brier by tenor, replica-vs-BRTI residual, fill markouts at 100 ms, 1 s, 10 s and 60 s</td><td>Stages 2–4</td></tr>
-        <tr><td><b>Risk system</b></td><td>Real-time payoff-vector book per expiry. Pre-trade checks. Net-delta hedger in perps. Limits and kill switches as above</td><td>Stage 6</td></tr>
-        <tr><td><b>Monitoring</b></td><td>Live dashboard: model vs book per strike, index divergence, latency percentiles, inventory and P&amp;L by tenor. Alerts and runbooks for the Thursday pause, exchange outages and oracle divergence</td><td>All</td></tr>
-        <tr><td><b>Treasury and legal</b></td><td>USD margin at Kalshi. Perp margin at the hedge venues. Polymarket US (CFTC-regulated) onboarding for US-person trading; the international venue is off-limits to US persons. Kalshi LP program application. CFTC staff advisory 26-23 on MM programs</td><td>Business</td></tr>
-        <tr><td><b>People</b></td><td>A quant researcher (models, calibration), a low-latency engineer (feeds, gateways), and a trader and ops owner (limits, events, venue relations)</td><td>All</td></tr>
+        <tr><td>Public baseline: Binance price, recent vol, normal</td><td class="r">0.2447</td><td class="r">0.1042</td><td class="r">0.0949</td><td class="r">20.9 / 6.5 / 4.0¢</td></tr>
+        <tr><td>Public baseline: options-implied (DVOL Black-Scholes)</td><td class="r">0.1757</td><td class="r">0.0995</td><td class="r">0.0963</td><td class="r">8.4 / 6.1 / 3.6¢</td></tr>
+        <tr><td>v1 realized vol (EWMA)</td><td class="r">0.1664</td><td class="r">0.0940</td><td class="r">0.0948</td><td class="r">4.7 / 3.1 / 3.8¢</td></tr>
+        <tr><td>v3 + time of week + DVOL</td><td class="r">0.1664</td><td class="r">0.0933</td><td class="r">0.0939</td><td class="r">4.8 / 3.0 / 2.4¢</td></tr>
+        <tr class="best"><td>v4 + Student-t tails</td><td class="r">0.1653</td><td class="r">0.0923</td><td class="r">0.0925</td><td class="r">4.3 / 2.2 / 1.9¢</td></tr>
+        <tr class="ref"><td>Kalshi mid</td><td class="r">0.1622</td><td class="r">0.0920</td><td class="r">0.0930</td><td class="r">–</td></tr>
       </tbody>
     </table>
   </div>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Differences, 95% CI by event (×1000)</h3>
+      <div class="scroll"><table>
+        <thead><tr><th></th><th class="r">15-min</th><th class="r">Hourly</th><th class="r">Daily</th></tr></thead>
+        <tbody>
+          <tr><td>v4 − mid</td><td class="r">+3.0 (2.4, 3.7)</td><td class="r">+0.3 (0.1, 0.6)</td><td class="r">−0.5 (−1.2, 0.1)</td></tr>
+          <tr><td>v4 − options-implied</td><td class="r">−10.4 (−11.4, −9.5)</td><td class="r">−7.2 (−7.8, −6.5)</td><td class="r">−3.8 (−5.8, −1.9)</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <div class="panel">
+      <h3>Does the model add to the mid?</h3>
+      <p>Blend weight on the model, fit on training data: 0.26 (15-min), 0.51 (hourly), 0.80 (daily). Out of sample the blend beats the mid alone on hourly (0.09191 vs 0.09200) and daily (0.09246 vs 0.09300), so the model carries information the book does not.</p>
+    </div>
+  </div>
+  <p class="caption">Why 15-minute trails: inverting each quote for the index level the market must be using gives a 0.9 bp median gap to our proxy (the proxy's known error size), correlated 0.34 with the gap implied by the hourly ladder at the same minute. The gap also grows with strike distance, which points to the market reading short-term volatility faster. Sub-second index replication is necessary for 15-minute markets, and a second-by-second volatility read is the other half.</p>
+</section>
 
-  <h3>Rollout, each phase gated on a measured number</h3>
+<section>
+  <div class="eyebrow">Test 2 · Market-making economics</div>
+  <h2>Do makers make money, and does the model help?</h2>
+  <p class="prose">6.3 million real Kalshi fills from random test-period events (250 fifteen-minute windows, 120 hourly events, 20 daily events), each with the taker's side. From the maker's side, per contract: settlement P&amp;L = s·(price − outcome). Makers pay no fee on these series. Contract-weighted; intervals resample whole events.</p>
+  <div class="scroll">
+    <table class="wide">
+      <thead><tr><th>Market</th><th class="r">Contracts</th><th class="r">Maker P&amp;L per contract</th><th class="r">95% CI</th><th class="r">Model edge ≥ 1¢</th><th class="r">Model edge &lt; 0</th></tr></thead>
+      <tbody>
+        <tr><td>15-minute</td><td class="r">405M</td><td class="r">+0.48¢</td><td class="r">0.17 to 0.78</td><td class="r">1.15¢ (−0.78 to 3.11)</td><td class="r">−0.03¢</td></tr>
+        <tr class="best"><td>Hourly</td><td class="r">181M</td><td class="r">+0.61¢</td><td class="r">0.17 to 1.07</td><td class="r">+1.85¢ (0.51 to 3.23)</td><td class="r">−0.79¢</td></tr>
+        <tr><td>Daily</td><td class="r">41M</td><td class="r">+0.65¢</td><td class="r">0.08 to 1.20</td><td class="r">0.15¢ (−3.10 to 3.25)</td><td class="r">1.04¢</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="grid2">
+    <div class="panel">
+      <h3>The model sorts fills</h3>
+      <p>On hourly, maker P&amp;L rises with the model's edge: < −5¢: −1.58¢, −5 to −2¢: −0.79¢, −2 to 0¢: +0.28¢, 0 to 2¢: +0.69¢, 2 to 5¢: +1.04¢, > 5¢: +2.74¢. A maker who stands only where the model sees edge earns about three times the average maker per contract.</p>
+    </div>
+    <div class="panel">
+      <h3>Where the money is</h3>
+      <ul>
+        <li>Retail-sized hourly fills (≤10 contracts) pay makers +1.10¢ per contract.</li>
+        <li>On 15-minute contracts the final minute is roughly break-even for makers (+0.10¢), with a −0.73¢ one-minute markout: that is where pick-off lives.</li>
+        <li>Cheap contracts on both sides are overpriced by about 2¢ on 6,470 hourly and daily events: a longshot premium makers collect.</li>
+      </ul>
+    </div>
+  </div>
+  <p class="caption">Limits: observed fills went to whichever makers were at the front of the queue; a new entrant gets a share and may be adversely selected more. The model-filtered numbers assume those fills would have been ours, and the daily filter result (20 events) is noise. A queue-position replay on recorded Kalshi books is the next test.</p>
+</section>
+
+<section>
+  <div class="eyebrow">Test 3 · Spot and derivatives signals</div>
+  <h2>What perps, open interest and funding tell you</h2>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Perps lead spot, briefly</h3>
+      <p>Binance perp vs spot at 100 ms: correlation 0.18 when the perp moves first vs 0.09 when spot does; the last second of the perp explains 1.7% of the next second of spot. Worthless for a 15-minute fair value, valuable for pulling stale quotes.</p>
+    </div>
+    <div class="panel">
+      <h3>Positioning doesn't forecast</h3>
+      <p>OI change, OI level, funding, basis, long/short ratios and taker flow: out-of-sample R² for BTC's next 1h / 4h / 24h return is −0.4% / −2.0% / −10.8%. Added to the volatility forecast (which explains 63% of next-hour log variance), they add nothing. A 0.9% "signal" disappeared once OI snapshots were time-stamped conservatively.</p>
+    </div>
+    <div class="panel">
+      <h3>The OI story describes; it doesn't predict</h3>
+      <p>Price up/down × OI up/down ("new longs", "short covering", "new shorts", "long liquidation"): no quadrant predicted the next 4 hours (largest |t| = 1.35). Crowded longs did not have fatter downside tails in this sample.</p>
+    </div>
+    <div class="panel">
+      <h3>Case: 10 Oct 2025</h3>
+      <p>Before the record (~$19B reported) liquidation cascade, OI was +0.8σ and funding normal. A tariff post triggered it; in the crash hour realized volatility was 2.8× the forecast and OI fell 18.6%. News triggers, leverage amplifies, and live liquidation data identifies the cascade while it happens. That makes it a kill-switch input.</p>
+    </div>
+  </div>
+  <p class="caption">One-factor market: ETH β ≈ 1.2 to BTC (R² 0.74–0.82), SOL β ≈ 1.25 (R² 0.65–0.76); both moved with BTC in all of its top-1% hours. Price alt contracts as BTC variance × β² plus a residual, and net them in one book.</p>
+</section>
+
+<section>
+  <div class="eyebrow">Sentiment and news</div>
+  <h2>X is crypto's newswire</h2>
+  <div class="grid2">
+    <div class="panel">
+      <h3>A. News defense (all tenors)</h3>
+      <p>Exchange hacks, ETF decisions and policy posts land on X first. A curated X stream plus a rules-and-LLM classifier pulls or widens quotes within about a second. At 15 minutes a 1% BTC move shifts near-money contracts by tens of cents. The January 2024 fake SEC ETF post (BTC +$1k then −$2k in minutes) is why defense widens on unverified headlines instead of taking a side.</p>
+    </div>
+    <div class="panel">
+      <h3>B. Crowd error (longer tenors)</h3>
+      <p>Cheap Kalshi contracts are overpriced by about 2¢ on both sides (6,470 events, intervals exclude zero). Downside longshots are most overpriced after strong rallies (3.6¢) and fairly priced after declines. That is suggestive, not established. For weekly-to-yearly markets the comparison becomes the options-implied fair value, and the trade is to sell the rich side and hedge it in options.</p>
+    </div>
+    <div class="panel">
+      <h3>C. Direction: not supported</h3>
+      <p>Retail attention (Wikipedia pageviews) did not improve next-day volatility forecasts, and its link to next-week returns was weak (R² 1%). Drift stays at zero.</p>
+    </div>
+    <div class="panel">
+      <h3>Scheduled releases are in the model</h3>
+      <p>First 5 minutes after CPI or FOMC: about 21× forecast variance; payrolls 7.6×. A bump fit on training releases improved Brier on test-period hourly contracts spanning a release (0.1265 vs 0.1275 for the mid), with too few releases to call it significant yet.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">Roadmap</div>
+  <h2>How the live system works and gets built</h2>
+  <p class="prose">One loop at three speeds. <b>Every tick:</b> sense (exchange books, perps, venue books, news) → rebuild the index → price every contract → quote → guard (limits, pulls, kill switches) → execute. <b>Every day:</b> record everything, refit the volatility weights, seasonality, tails, basis and event bumps, score against the mid and markouts, promote only what holds out of sample. <b>Every week:</b> review P&amp;L by tenor, venue and hour; adjust limits and which markets to quote.</p>
   <div class="phases">
-    <div class="phase"><span class="when">Phase 1 · Shadow</span><p>Run the full engine live on recorded feeds and the real books with no orders. Rebuild the BRTI replica and measure it against Kalshi's stream.</p><p class="gate">Gate: replica residual under 0.5 bp. Model ties mid on hourly and daily, live.</p></div>
-    <div class="phase"><span class="when">Phase 2 · Hourly and daily</span><p>Quote small size where the model already ties or beats the book. Track markouts per fill.</p><p class="gate">Gate: positive spread capture net of markouts over enough expiries to matter.</p></div>
-    <div class="phase"><span class="when">Phase 3 · 15-minute</span><p>Turn on 15-minute quoting with the sub-second replica, perp-lead pulls and the in-window partial-average strike.</p><p class="gate">Gate: 15-minute model gap to mid under 1¢ in shadow.</p></div>
-    <div class="phase"><span class="when">Phase 4 · LP and Polymarket</span><p>Bid for Kalshi LP slots. Add Polymarket with the Chainlink and Binance references and a basis model.</p><p class="gate">Gate: LP economics clear the auction price. Basis model validated.</p></div>
+    <div class="phase"><span class="when">1 · Live shadow</span><p>Feeds from the 7 BRTI exchanges, Kalshi BRTI stream, perps, Deribit; pricer live with no orders.</p><p class="gate">Gate: replica within 0.5 bp of Kalshi's BRTI; live model matches the backtest.</p></div>
+    <div class="phase"><span class="when">2 · Hourly and daily</span><p>Quote engine, risk book, perp hedger, kill switches, news defense v1. Small size.</p><p class="gate">Gate: positive spread capture net of markouts over many expiries.</p></div>
+    <div class="phase"><span class="when">3 · 15-minute</span><p>Sub-second index and volatility read, perp-lead pulls, in-window averaging math.</p><p class="gate">Gate: gap to mid under 1¢ in shadow; pick-off below spread in replay.</p></div>
+    <div class="phase"><span class="when">4 · Long-dated, Polymarket, LP</span><p>Options-implied pricing and hedging; Chainlink and Binance replicas; bid for Kalshi LP slots.</p><p class="gate">Gate: hedged relative value and LP economics clear their costs.</p></div>
   </div>
 </section>
 
 <section>
-  <div class="eyebrow">General framework</div>
-  <h2>Crypto on prediction markets, in general</h2>
-  <div class="prose" style="display:flex;flex-direction:column;gap:12px">
-    <ol>
-      <li><b>Read the settlement rule first.</b> Which index, which exchange, average or point print, tie rule, timezone. Most mispricings on these venues come from getting this wrong.</li>
-      <li><b>Replicate that index exactly</b>, at the speed the market reads it.</li>
-      <li><b>Forecast variance for the exact minutes left</b>, not a generic annual vol. Time of day and scheduled events move it by 3×.</li>
-      <li><b>Use a fat-tailed distribution</b> and price every contract on the same index from it.</li>
-      <li><b>Set drift to zero.</b> Funding, OI and sentiment belong in the variance or jump inputs, if they earn a place at all.</li>
-      <li><b>Benchmark against the venue's own mid</b>, out of sample. Matching it is the requirement to quote; beating it is a bonus.</li>
-      <li><b>Make the money in market making</b>: spread, rebates, LP rewards and netting, protected by speed and limits.</li>
-    </ol>
-    <p>The same recipe covers ETH, SOL and other assets on Kalshi, ForecastEx's matching 15-minute contract, and Polymarket US. Each needs its own index check and parameters.</p>
-  </div>
-</section>
-
-<section>
-  <div class="eyebrow">Next</div>
-  <h2>Next steps</h2>
+  <div class="eyebrow">Limits</div>
+  <h2>What is not proven yet</h2>
   <ul class="prose">
-    <li>Get a Kalshi API key and confirm the BRTI stream entitlement. Record it alongside the seven constituent books, then rerun the 15-minute test on sub-second data.</li>
-    <li>Fit event-hour variance bumps from CPI, NFP and FOMC windows.</li>
-    <li>Pull Polymarket 15-minute history and the Chainlink reference. Measure the BRTI–Chainlink basis and test the same engine there.</li>
-    <li>Build the replay simulator and measure markout-adjusted maker P&amp;L per tenor, with the expiry as the statistical unit.</li>
+    <li>15-minute pricing needs sub-second data from all seven BRTI exchanges; the test used one-minute data from two.</li>
+    <li>Maker P&amp;L is measured on fills that happened, not on a queue-position replay of our own quotes.</li>
+    <li>Polymarket, weekly-to-yearly contracts, touch markets and the news feed are designed but not tested; each needs data listed in the repo's results doc.</li>
+    <li>The daily accuracy result rests on 104 events; the release-bump result on 18 event-hours.</li>
   </ul>
 </section>
 
 <footer>
-  Reproduce: <span class="mono">make setup &amp;&amp; make data &amp;&amp; python scripts/calibrate.py</span>. The data is free and public (Kalshi, Coinbase, Bitstamp, Binance Vision, Deribit). Contract rules are from Kalshi's CRYPTO and BTC contract terms and Polymarket's documentation. Market-structure figures (bot share, LP slots, fees) come from public sources and should be re-confirmed before trading.
+  Full write-up in the repo: <span class="mono">docs/01_PRICING_GUIDE.md</span> (from zero), <span class="mono">02_MARKET_SIGNALS.md</span>, <span class="mono">03_SENTIMENT_AND_NEWS.md</span>, <span class="mono">04_MARKET_MAKING.md</span>, <span class="mono">05_SYSTEM_ROADMAP.md</span>, <span class="mono">06_RESULTS.md</span>, <span class="mono">GLOSSARY.md</span>. Reproduce with <span class="mono">make setup &amp;&amp; make data &amp;&amp; make results</span>. All data is free and public. Contract rules and fees were checked against Kalshi's API and rulebooks and Polymarket's documentation on 4 Nov 2026.
 </footer>
 
 </div>

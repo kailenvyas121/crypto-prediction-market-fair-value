@@ -23,6 +23,7 @@ MAX_SPREAD = 0.10
 RNG = np.random.default_rng(0)
 
 MODELS = {  # name: (vol forecaster, tails, settlement averaging)
+    "baseline: options-implied (DVOL Black-Scholes digital)": ("dvol", False, False),
     "v0 flat vol, normal": ("flat", False, True),
     "v1 EWMA vol, normal": ("ewma", False, True),
     "v2 HAR + seasonal, normal": ("har", False, True),
@@ -31,6 +32,8 @@ MODELS = {  # name: (vol forecaster, tails, settlement averaging)
     "v4 without averaging adj.": ("har_iv", True, False),
 }
 BEST = "v4 v3 + Student-t tails"
+OPTIONS = "baseline: options-implied (DVOL Black-Scholes digital)"
+BINANCE = "baseline: Binance price, EWMA vol, normal"
 
 
 def load_rows(series: str, px: pd.Series) -> pd.DataFrame:
@@ -128,6 +131,12 @@ def run() -> dict:
     rows["spot_raw"] = rows["spot"]
     rows["spot"] = rows["spot_raw"] * np.exp(basis)  # proxy → BRTI level
     rows["v4 without basis adj."], _ = price(rows.assign(spot=rows["spot_raw"]), vm, "har_iv", True, True, nu)
+    # A common bot setup: price off Binance BTC/USDT (not the settlement index), EWMA vol, normal, point settlement
+    bn = store.read_parts(RAW_DIR / "binance" / "spot_BTCUSDT_1m").set_index("ts")["close"]
+    bn = bn[~bn.index.duplicated()].sort_index()
+    bn.index = bn.index + pd.Timedelta(minutes=1)  # keyed by bar end, like the proxy
+    rows[BINANCE], _ = price(rows.assign(spot=bn.reindex(px.index).ffill().to_numpy()[rows["t_pos"]]),
+                             vm, "ewma", False, False, nu)
     for name, (kind, t, avg) in MODELS.items():
         rows[name], var = price(rows, vm, kind, t, avg, nu)
         if name == BEST:
@@ -139,7 +148,7 @@ def run() -> dict:
                        "test_events": int(test[test.cadence == c].event_ticker.nunique())}
                    for c in ["fifteen_min", "hourly", "daily"]}
 
-    cols = list(MODELS) + ["v4 without basis adj.", "mid"]
+    cols = [BINANCE, *MODELS, "v4 without basis adj.", "mid"]
     res["overall"], res["by_tau"], res["by_distance"], res["vs_mid"], res["blend"], res["vol_scale"] = {}, {}, {}, {}, {}, {}
     for cad in ["fifteen_min", "hourly", "daily"]:
         d = test[test.cadence == cad]
@@ -147,6 +156,9 @@ def run() -> dict:
                                    "mae_vs_mid_cents": float(100 * np.mean(np.abs(d[c] - d["mid"])))} for c in cols}
         res["vs_mid"][cad] = {"brier_best_minus_mid": brier(d[BEST], d.y) - brier(d["mid"], d.y),
                               "ci95": event_bootstrap(d, BEST, "mid")}
+        res.setdefault("vs_baselines", {})[cad] = {
+            b: {"brier_best_minus_baseline": brier(d[BEST], d.y) - brier(d[b], d.y), "ci95": event_bootstrap(d, BEST, b)}
+            for b in (BINANCE, OPTIONS)}
         bt = tau_bucket(cad, d["tau"])
         res["by_tau"][cad] = {b: {"n": len(g), "model": brier(g[BEST], g.y), "mid": brier(g["mid"], g.y),
                                   "mae_cents": float(100 * np.mean(np.abs(g[BEST] - g["mid"]))),

@@ -1,6 +1,6 @@
 # Data
 
-Every dataset is pulled by `make data` (or the individual `scripts/pull_*.py`) into `data/raw/`. Pulls are resumable: finished partitions are skipped, and long paginations checkpoint their cursor. No API keys are required. The study window and every source setting live in [`configs/data.yaml`](../configs/data.yaml).
+Every dataset is pulled by `make data` (or the individual `scripts/pull_*.py`) into `data/raw/`. `make results` then runs every study in [`06_RESULTS.md`](06_RESULTS.md). Pulls are resumable: finished partitions are skipped, and long paginations checkpoint their cursor. No API keys are required. The study window and every source setting live in [`configs/data.yaml`](../configs/data.yaml).
 
 **Study window:** contract closes from 2025-11-01 up to 2026-10-28 (exclusive). Spot and vol history starts 35 days earlier as model warm-up.
 
@@ -19,7 +19,12 @@ Every dataset is pulled by `make data` (or the individual `scripts/pull_*.py`) i
 | Binance BTCUSDT spot, 1s | `binance/spot_BTCUSDT_1s/{day}` | data.binance.vision | 1 s, last 60 days | Settlement-minute and in-window studies |
 | Binance perp funding | `binance/futures_um_BTCUSDT_fundingRate/{month}` | data.binance.vision | 8 h, published monthly (ends at the last full month) | State variable (vol and jump regime) |
 | Deribit DVOL | `deribit/dvol_BTC_3600s/{month}`, `deribit/dvol_BTC_60s/{month}` | Deribit `get_volatility_index_data` | 1 h for the full window; 1 min for the last ~6 months (Deribit's retention) | Implied-vol input |
-| Macro calendar | `configs/events.csv` (in git) | federalreserve.gov | event | Event variance bumps |
+| Kalshi fill sample | `kalshi/{KXBTC15M,KXBTCD}/trades/{ticker}` | `/historical/trades`, `/markets/trades` | 1 row per fill, with taker side | Maker markout study |
+| Binance perp positioning | `binance/futures_um_BTCUSDT_metrics/{day}` | data.binance.vision | 5 min: open interest, long/short ratios, taker buy/sell | Positioning study |
+| Binance perp and spot trades | `binance/{futures_um,spot}_BTCUSDT_aggTrades/{day}` | data.binance.vision | every trade, 3 weekdays | Perp lead study |
+| Binance ETH, SOL spot | `binance/spot_{ETH,SOL}USDT_1m/{month}` | data.binance.vision | 1 min | BTC-beta study |
+| Wikipedia pageviews | `attention/wikipedia_{Bitcoin,Cryptocurrency}` | Wikimedia REST API | daily | Retail-attention proxy |
+| Macro calendar | `configs/events.csv` (in git) | federalreserve.gov, bls.gov | event | CPI, payrolls, FOMC variance bumps |
 
 ## Schemas
 

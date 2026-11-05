@@ -1,0 +1,137 @@
+{
+  "attention_vs_next_day_vol": {
+    "days_train": 187,
+    "days_test": 179,
+    "oos_r2_har": 0.4867450987429881,
+    "oos_r2_har_plus_attention": 0.46371329307494247,
+    "corr_attention_with_next_day_log_rv_test": 0.05073915472474435
+  },
+  "attention_vs_next_7d_return": {
+    "oos_r2": 0.009688357581347784,
+    "corr_test": -0.11816276860740958,
+    "note": "daily samples with overlapping 7-day targets; R\u00b2 is out of sample"
+  },
+  "crowd_error": {
+    "rows": 1322966,
+    "events": 6475,
+    "note": "mid \u2212 outcome on cheap (P<0.3) contracts, cents; >0 means the crowd overpays",
+    "by_trailing_7d_return": {
+      "downside (BTC must fall) | low": {
+        "n": 223615,
+        "overpricing_c": -0.15466091272946747,
+        "ci95_c": [
+          -3.5240913051804936,
+          2.709033049505764
+        ]
+      },
+      "downside (BTC must fall) | mid": {
+        "n": 221785,
+        "overpricing_c": 2.317221633564038,
+        "ci95_c": [
+          0.440612411281065,
+          3.9332956455680343
+        ]
+      },
+      "downside (BTC must fall) | high": {
+        "n": 219870,
+        "overpricing_c": 3.593155046163643,
+        "ci95_c": [
+          2.039055586121039,
+          5.068927524302767
+        ]
+      },
+      "upside (BTC must rise) | low": {
+        "n": 220023,
+        "overpricing_c": 1.6188421210509811,
+        "ci95_c": [
+          -1.1156600593512918,
+          3.916346864942187
+        ]
+      },
+      "upside (BTC must rise) | mid": {
+        "n": 221493,
+        "overpricing_c": 2.1885951249023674,
+        "ci95_c": [
+          -0.08997897938213292,
+          4.1356937216646354
+        ]
+      },
+      "upside (BTC must rise) | high": {
+        "n": 216180,
+        "overpricing_c": 2.322150522712555,
+        "ci95_c": [
+          0.2070630067440082,
+          4.065706065885992
+        ]
+      }
+    },
+    "by_attention_shock": {
+      "downside (BTC must fall) | low": {
+        "n": 222653,
+        "overpricing_c": 3.140323732444657,
+        "ci95_c": [
+          1.3479814350344508,
+          4.647750276301023
+        ]
+      },
+      "downside (BTC must fall) | mid": {
+        "n": 224406,
+        "overpricing_c": 2.544016202775328,
+        "ci95_c": [
+          0.5635292956132901,
+          4.222681824702237
+        ]
+      },
+      "downside (BTC must fall) | high": {
+        "n": 218211,
+        "overpricing_c": -0.003333929086983876,
+        "ci95_c": [
+          -3.0383945016249316,
+          2.6278252208193864
+        ]
+      },
+      "upside (BTC must rise) | low": {
+        "n": 218697,
+        "overpricing_c": 2.36855329519838,
+        "ci95_c": [
+          0.2979686779919531,
+          4.26607530615457
+        ]
+      },
+      "upside (BTC must rise) | mid": {
+        "n": 220345,
+        "overpricing_c": 2.335480723411015,
+        "ci95_c": [
+          0.13446849120700474,
+          4.278944591329256
+        ]
+      },
+      "upside (BTC must rise) | high": {
+        "n": 218654,
+        "overpricing_c": 1.4193040145618194,
+        "ci95_c": [
+          -0.7898168928928608,
+          3.592464218609125
+        ]
+      }
+    },
+    "all": {
+      "downside (BTC must fall)": {
+        "n": 665270,
+        "overpricing_c": 1.9080486118418092,
+        "ci95_c": [
+          0.4924847492395204,
+          3.172142160262385
+        ]
+      },
+      "upside (BTC must rise)": {
+        "n": 657696,
+        "overpricing_c": 2.041890934413468,
+        "ci95_c": [
+          0.6171975387083904,
+          3.309570275799804
+        ]
+      }
+    }
+  }
+}

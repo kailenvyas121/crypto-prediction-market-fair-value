@@ -1,3 +1,5 @@
+> **Archived working notes (2026-10-27).** This was the research sweep written before any testing. Where it conflicts with the numbered docs, the numbered docs win: they use this repo's measured results and a fact-check done on 2026-11-04. Known corrections: Polymarket 15-minute markets settle on a Chainlink 60-second TWAP at the end versus the price at the start (they compared two single prints before mid-2026); Polymarket US settles on BRTI; the Polymarket taker delay is not officially documented; Aleti & Mizrach (2021) find that CME futures, not perps, lead spot; the perp lead and positioning claims are replaced by measured results in `docs/02_MARKET_SIGNALS.md`.
+
 # Pricing and Making Markets in Crypto Prediction Contracts — Research Outline
 
 Prepared for the PinPredict take-home. Research sweep as of 2026-10-27. Tags: **[V]** verified against a primary source (rulebook, live API, the paper itself); **[R]** reported by press or a single source; **[D]** our own derivation or calculation, to be re-checked before it goes in the memo.

@@ -23,6 +23,11 @@ from pinpricer.research import calibration as cal
 RNG = np.random.default_rng(0)
 
 
+def maker_sign(taker_side: pd.Series) -> np.ndarray:
+    """+1 when the maker sold YES (the taker bought YES), −1 when the maker bought YES."""
+    return np.where(taker_side == "yes", 1.0, -1.0)
+
+
 def _load(series: str, px: pd.Series) -> pd.DataFrame:
     tdir = RAW_DIR / "kalshi" / series / "trades"
     t = pd.concat([pd.read_parquet(f) for f in tdir.glob("*.parquet")], ignore_index=True)
@@ -32,7 +37,7 @@ def _load(series: str, px: pd.Series) -> pd.DataFrame:
     t = t.merge(m, on="ticker")
     t = t[t["result"].isin(["yes", "no"]) & (t["ts"] < t["close_time"])].copy()
     t["y"] = (t["result"] == "yes").astype(float)
-    t["s"] = np.where(t["taker_side"] == "yes", 1.0, -1.0)
+    t["s"] = maker_sign(t["taker_side"])
     t["minute"] = t["ts"].dt.floor("min")
     t["tau"] = np.ceil((t["close_time"] - t["minute"]).dt.total_seconds() / 60).astype(int)
     t["t_pos"] = px.index.get_indexer(t["minute"])
