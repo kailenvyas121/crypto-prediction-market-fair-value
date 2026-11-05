@@ -14,6 +14,15 @@ A research prototype for pricing short-dated crypto event contracts in real time
 | Quoting and risk design | designed (memo); not simulated |
 | Memo | done: [`docs/memo.html`](docs/memo.html) |
 
+## Read first
+| Document | What it covers |
+|---|---|
+| [`docs/FRAMEWORK.md`](docs/FRAMEWORK.md) | How to price crypto prediction markets, in plain language: settlement rules, the pricing recipe, what each tenor and venue depends on, long-dated and touch markets, how the industry does it |
+| [`docs/SENTIMENT.md`](docs/SENTIMENT.md) | Where sentiment is and isn't an edge, mainly in longer-dated markets, and how to test it |
+| [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) | Production architecture, components, data and vendors, latency budget, operating loop, phased roadmap |
+| [`docs/memo.html`](docs/memo.html) | The memo with flowcharts and the out-of-sample test results |
+| [`docs/RESEARCH_OUTLINE.md`](docs/RESEARCH_OUTLINE.md) · [`docs/DATA.md`](docs/DATA.md) | Research notes and sources; data inventory |
+
 ## Quickstart
 ```bash
 make setup        # create .venv and install the package with dev extras
@@ -31,5 +40,6 @@ notebooks/          calibration study, ablations, live model-vs-book view
 scripts/            thin CLI entry points (pull_*.py)
 src/pinpricer/
   data/             resumable, rate-limited clients: Kalshi, spot exchanges, Deribit
+  model/            variance forecast (vol.py) and digital pricing on averaged settlement (fv.py)
 tests/              offline unit tests (no network)
 ```
