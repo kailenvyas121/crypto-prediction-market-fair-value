@@ -46,10 +46,10 @@ The free USD composite tracks the settlement index to about a basis point. Binan
 | v1 EWMA realized vol | 0.1664 | 0.0940 | 0.0948 |
 | v2 HAR + time of week | 0.1668 | 0.0937 | 0.0947 |
 | v3 + DVOL | 0.1664 | 0.0933 | 0.0939 |
-| **v4 + Student-t tails** | **0.1653** | **0.0923** | **0.0925** |
+| **v4 + Student-t tails** | **0.1652** | **0.0923** | **0.0925** |
 | Kalshi mid | 0.1622 | 0.0920 | 0.0930 |
 
-All rows except v0 include the averaging adjustment and the proxy offset; the naive Binance row has neither.
+All rows except the options-implied baseline and the naive Binance row include the averaging adjustment; all except naive Binance include the proxy offset.
 
 **Average gap to the Kalshi mid:** v4 4.3¢ / 2.2¢ / 1.9¢ (15m / hourly / daily). Options-implied baseline 8.4 / 6.1 / 3.6¢. Naive Binance 20.9 / 6.5 / 4.0¢.
 
@@ -144,7 +144,7 @@ Hourly data. Train before May 2026 (4,991 hours); test from 1 May to 25 Oct 2026
 | Best single signal for the next hour (OI change) | R² +0.05%, correlation 0.03 |
 | Volatility: base forecast (HAR + time of week + DVOL) | Out-of-sample R² 0.63 on next-hour log variance |
 | Volatility: positioning on the base forecast's error | Out-of-sample R² −0.03 (no help) |
-| Tails: 4-hour moves beyond 2σ, most vs least crowded long third (terciles set on training data) | Down: 1.8% vs 1.4%. Up: 3.1% vs 1.9% |
+| Tails: 4-hour moves beyond 2σ, most vs least crowded long group (cut points set on training data, so test groups are uneven: 1,342 vs 630 hours) | Down: 1.8% vs 1.4%. Up: 3.1% vs 1.9% |
 | OI story quadrants, next 4 hours (descriptive, full sample, non-overlapping) | Largest \|t\| = 1.35; none significant |
 | Liquidation-like hours (OI −2%, price ±1%; n = 77) | After a down-flush, the next 4h averaged +16 bp (t = 0.96) |
 
@@ -181,7 +181,7 @@ Binance USDT spot, Nov 2025–Oct 2026.
 | | First 5 minutes | First hour | Minutes 5–60 |
 |---|---|---|---|
 | CPI | 25.6× | 4.0× | 1.05× |
-| FOMC | 16.2× | 6.4× | 4.2× |
+| FOMC | 16.2× | 6.3× | 4.2× |
 | Payrolls | 10.8× | 3.2× | 1.8× |
 | **Pooled, training releases** | **6.3×** | – | **2.0×** |
 

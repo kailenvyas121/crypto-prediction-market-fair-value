@@ -163,7 +163,7 @@ footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--li
   </div>
   <div class="callout">
     <strong>What this means for PinPredict</strong>
-    <p>Makers on Kalshi's BTC markets are paid. The model comes within a fraction of a thousandth of the book's accuracy on hourly and daily contracts, and on hourly the fills it rates favorable earn about 2.5× the average maker's edge. Start on hourly and daily, where the latency bar is lowest and retail flow concentrates. Bring in 15-minute markets once a sub-second index replica and volatility read close the remaining gap. Use positioning data and the news feed for <i>risk</i> (widening, pulling, sizing), not for fair value. Our data shows they don't forecast price; they describe danger.</p>
+    <p>Makers on Kalshi's BTC markets are paid. The model comes within a fraction of a thousandth of the book's accuracy on hourly and daily contracts, and on hourly the fills it rates favorable earn about 2.5× the average maker's edge. Start on hourly and daily, where the latency bar is lowest and small, retail-sized fills pay makers the most. Bring in 15-minute markets once a sub-second index replica and volatility read close the remaining gap. Use positioning data and the news feed for <i>risk</i> (widening, pulling, sizing), not for fair value. Our data shows they don't forecast price; they describe danger.</p>
   </div>
 </section>
 
@@ -313,7 +313,7 @@ footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--li
         <tr><td>Variant: Binance minus trailing USDT basis, full model</td><td class="r">0.1689</td><td class="r">0.0924</td><td class="r">0.0924</td><td class="r">5.6 / 2.4 / 1.9¢</td></tr>
         <tr><td>v1 realized vol (EWMA)</td><td class="r">0.1664</td><td class="r">0.0940</td><td class="r">0.0948</td><td class="r">4.7 / 3.1 / 3.8¢</td></tr>
         <tr><td>v3 + time of week + DVOL</td><td class="r">0.1664</td><td class="r">0.0933</td><td class="r">0.0939</td><td class="r">4.8 / 3.0 / 2.4¢</td></tr>
-        <tr class="best"><td>v4 + Student-t tails</td><td class="r">0.1653</td><td class="r">0.0923</td><td class="r">0.0925</td><td class="r">4.3 / 2.2 / 1.9¢</td></tr>
+        <tr class="best"><td>v4 + Student-t tails</td><td class="r">0.1652</td><td class="r">0.0923</td><td class="r">0.0925</td><td class="r">4.3 / 2.2 / 1.9¢</td></tr>
         <tr class="ref"><td>Kalshi mid</td><td class="r">0.1622</td><td class="r">0.0920</td><td class="r">0.0930</td><td class="r">–</td></tr>
       </tbody>
     </table>
@@ -341,7 +341,7 @@ footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--li
 <section>
   <div class="eyebrow">Test 2 · Market-making economics</div>
   <h2>Do makers make money, and does the model help?</h2>
-  <p class="prose">6.3 million real Kalshi fills from random test-period events (250 fifteen-minute windows, 120 hourly events, 20 daily events), each with the taker's side. Ladder strikes are chosen from the price known at each event's open, so the sample doesn't depend on outcomes. From the maker's side, per contract: settlement P&amp;L = s·(price − outcome). Makers pay no fee on these series. Contract-weighted; intervals resample whole days.</p>
+  <p class="prose">7.6 million real Kalshi fills from random test-period events (250 fifteen-minute windows, 120 hourly events, 20 daily events), each with the taker's side. Ladder strikes are chosen from the price known at each event's open, so the sample doesn't depend on outcomes. From the maker's side, per contract: settlement P&amp;L = s·(price − outcome). Makers pay no fee on these series. Contract-weighted; intervals resample whole days.</p>
   <div class="scroll">
     <table class="wide">
       <thead><tr><th>Market</th><th class="r">Contracts</th><th class="r">Maker P&amp;L per contract</th><th class="r">95% CI</th><th class="r">Model edge ≥ 1¢</th><th class="r">Model edge &lt; 0</th></tr></thead>
@@ -361,7 +361,7 @@ footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--li
       <h3>Where the money is</h3>
       <ul>
         <li>Retail-sized hourly fills (≤10 contracts) pay makers +1.34¢ per contract.</li>
-        <li>Fills over 1,000 contracts pay makers least (+0.33¢) and the market moves against the maker after them: large takers are better informed.</li>
+        <li>Fills over 1,000 contracts pay makers least (+0.33¢) and the market tends to move against the maker after them, which suggests large takers are better informed.</li>
         <li>On 15-minute contracts makers earn roughly nothing over the last 10 minutes; only the 10–15 minute bucket is clearly positive. That is where pick-off lives.</li>
         <li>Cheap contracts on both sides are overpriced by about 2¢ across 6,475 hourly and daily events: a longshot premium makers collect.</li>
       </ul>

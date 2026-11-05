@@ -62,7 +62,7 @@ Each fill is bucketed by the model's edge for the maker, s·(price − fair valu
 | 100–1k | +0.76¢ (0.24 to 1.27) | +0.04¢ |
 | >1k | +0.33¢ (−1.14 to 1.83) | −0.42¢ |
 
-Small, retail-sized fills pay makers the most. Fills over 1,000 contracts pay the least, and the market moves against the maker after them: large takers are better informed.
+Small, retail-sized fills pay makers the most. Fills over 1,000 contracts pay the least, and their interval includes zero. The market tends to move against the maker after them, which suggests, but does not prove, that large takers are better informed.
 
 **By time left (15-minute):**
 
@@ -116,7 +116,7 @@ This is gross settlement P&L before hedging costs, capital, infrastructure and t
 4. **Pull on leading signals:** perp jumps (100–300 ms ahead of spot), news alerts, and liquidation or OI flushes.
 5. **Keep the ladder coherent.** Quote every strike and bucket from one distribution, and project quotes back onto monotone, sum-to-one constraints after any change.
 6. **Lean into the structural edge.** Sell longshots on both sides, sized by model edge and capped by the ladder-sweep limit.
-7. **Widen before scheduled releases.** The first 5 minutes after a release carry about 6× forecast variance (pooled, training releases). Single releases have run much higher: CPI and FOMC medians are 16–26× over the full sample.
+7. **Widen before scheduled releases.** The first 5 minutes after a release carry about 6× forecast variance (pooled, training releases). By release type the median is much higher: 16× for FOMC and 26× for CPI over the full sample.
 
 ---
 

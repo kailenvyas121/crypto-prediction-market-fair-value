@@ -70,7 +70,7 @@ In a 15-minute market, mispricing is corrected in seconds. Longer-dated markets 
 
 Cheap contracts (model under 30% and market under 50% for that side) on Kalshi hourly and daily ladders, Nov 2025–Oct 2026. Intervals resample whole weeks (44), because contracts in the same week share one price path:
 
-| Side | Contract-minutes | Events | Crowd overpays by (mid − outcome) | 95% CI (by event) |
+| Side | Contract-minutes | Events | Crowd overpays by (mid − outcome) | 95% CI (by week) |
 |---|---|---|---|---|
 | Upside longshots (BTC must rise) | 657,696 | 6,470 | **2.0¢** | 0.5 to 3.5¢ |
 | Downside longshots (BTC must fall) | 665,270 | 6,460 | **1.9¢** | 0.1 to 3.6¢ |
@@ -83,7 +83,7 @@ Cheap contracts (model under 30% and market under 50% for that side) on Kalshi h
 |---|---|---|
 | BTC's last 7 days: weakest third | −0.2¢ (−3.9 to 3.9) | 1.6¢ (−1.5 to 3.9) |
 | BTC's last 7 days: strongest third | **3.6¢ (2.2 to 5.0)** | 2.3¢ (1.1 to 3.9) |
-| Retail attention (Wikipedia pageviews): lowest third | 3.1¢ (1.6 to 4.5) | 2.4¢ (0.1 to 4.5) |
+| Retail attention (Wikipedia pageviews): lowest third | 3.1¢ (1.6 to 4.5) | 2.4¢ (0.0 to 4.5) |
 | Retail attention: highest third | 0.0¢ (−3.3 to 3.1) | 1.4¢ (−0.9 to 3.3) |
 
 - **After strong rallies, downside longshots (crash protection) are most overpriced.** After declines they are fairly priced.

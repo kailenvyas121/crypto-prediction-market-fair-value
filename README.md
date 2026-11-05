@@ -25,7 +25,7 @@ Accuracy tests are out of sample: fit before May 2026, scored May–October 2026
 | Does the model help a maker? | **On hourly, yes.** Fills it rates favorable earn **+1.82¢** per contract (0.29 to 3.36), about 2.5× the average. On 15-minute the direction is the same but not significant |
 | Do open interest, funding or long/short ratios predict BTC? | **No.** Out-of-sample R² is below zero at 1h, 4h and 24h, and they add nothing to the volatility forecast. They describe risk; they don't forecast it |
 | Does sentiment help? | **As defense and as crowd error, not as direction.** Cheap contracts are overpriced by about 2¢ on both sides (6,475 events, 44 weeks). X-driven news defense protects quotes. Retail attention didn't forecast volatility or returns |
-| What matters most in the model? | The right index, then a realized-volatility forecast, then fat tails. Time-of-day volatility helps hourly and daily. Settlement averaging matters in the final minutes |
+| What matters most in the model? | A realized-volatility forecast, then the right index (mainly for 15-minute contracts), then fat tails. Time-of-day volatility helps hourly and daily. Settlement averaging matters in the final minutes |
 
 ## Read in this order
 
