@@ -105,6 +105,51 @@ def parse_binance_funding(raw: bytes) -> pd.DataFrame:
     })
 
 
+def parse_binance_metrics(raw: bytes) -> pd.DataFrame:
+    """5-minute perp positioning: open interest (BTC and USD) and long/short ratios."""
+    with zipfile.ZipFile(io.BytesIO(raw)) as z, z.open(z.namelist()[0]) as f:
+        df = pd.read_csv(f)
+    return pd.DataFrame({
+        "ts": pd.to_datetime(df["create_time"], utc=True),
+        "oi_btc": df["sum_open_interest"].astype(float),
+        "oi_usd": df["sum_open_interest_value"].astype(float),
+        "top_ls_accounts": df["count_toptrader_long_short_ratio"].astype(float),
+        "top_ls_positions": df["sum_toptrader_long_short_ratio"].astype(float),
+        "ls_accounts": df["count_long_short_ratio"].astype(float),
+        "taker_buy_sell_vol": df["sum_taker_long_short_vol_ratio"].astype(float),
+    })
+
+
+def parse_binance_aggtrades(raw: bytes) -> pd.DataFrame:
+    """Aggregated trades. Spot files have no header and µs timestamps; futures have a header and ms."""
+    cols = ["agg_id", "price", "qty", "first_id", "last_id", "time", "is_buyer_maker"]
+    with zipfile.ZipFile(io.BytesIO(raw)) as z, z.open(z.namelist()[0]) as f:
+        df = pd.read_csv(f, header=None, names=cols, usecols=range(7), low_memory=False)
+    df = df[pd.to_numeric(df["agg_id"], errors="coerce").notna()]
+    t = df["time"].astype("int64")
+    unit = "us" if t.iloc[0] > 1e14 else "ms"
+    return pd.DataFrame({"ts": pd.to_datetime(t, unit=unit, utc=True), "price": df["price"].astype(float),
+                         "qty": df["qty"].astype(float),
+                         "buyer_maker": df["is_buyer_maker"].astype(str).str.lower() == "true"})
+
+
+def pull_binance_daily(http: HttpClient, base: str, market: str, kind: str, days: list[pd.Timestamp],
+                       parser, workers: int = 4) -> None:
+    """Daily-only Binance Vision datasets (metrics, aggTrades), one partition per day."""
+    out = RAW_DIR / "binance" / f"{market.replace('/', '_')}_{kind}"
+    todo = [d for d in days if not store.is_done(out, d.strftime("%Y-%m-%d"))]
+    sym = market.rsplit("/", 1)[1]
+
+    def job(day):
+        key = day.strftime("%Y-%m-%d")
+        raw = http.get_bytes(_vision_url(base, market, "daily", kind, sym, None, key), allow_404=True)
+        if raw:
+            store.write_part(parser(raw), out, key)
+
+    with ThreadPoolExecutor(workers) as ex:
+        list(tqdm(ex.map(job, todo), total=len(todo), desc=f"{market} {kind}", unit="day"))
+
+
 def _vision_url(base: str, market: str, freq: str, kind: str, symbol: str, interval: str | None, date: str) -> str:
     # e.g. {base}/spot/monthly/klines/BTCUSDT/1m/BTCUSDT-1m-2026-01.zip
     root, sym = market.rsplit("/", 1)
@@ -174,3 +219,7 @@ def run() -> None:
         pull_binance_monthly(http_bv, bv["base_url"], market, "klines", "1m", start, end, parse_binance_klines)
     pull_binance_monthly(http_bv, bv["base_url"], bv["funding"], "fundingRate", None, start, end, parse_binance_funding)
     pull_binance_1s(http_bv, bv["base_url"], days[-bv["klines_1s_days"]:])
+    pull_binance_daily(http_bv, bv["base_url"], bv["funding"], "metrics", days, parse_binance_metrics)
+    lead_days = [pd.Timestamp(d, tz="UTC") for d in bv["aggtrades_days"]]
+    for market in ("futures/um/BTCUSDT", "spot/BTCUSDT"):
+        pull_binance_daily(http_bv, bv["base_url"], market, "aggTrades", lead_days, parse_binance_aggtrades, workers=2)

@@ -4,23 +4,20 @@ Train (vol weights, seasonal profile, tail ν, blend weight): contracts closing 
 Test: contracts closing on or after it. Every row is one contract-minute with a two-sided Kalshi
 quote; the model sees only data up to that minute.
 
-    python scripts/calibrate.py            # writes docs/results/calibration.{json,md}
+    python scripts/run_studies.py calibration      # writes docs/results/calibration.json
 """
 
 from __future__ import annotations
 
-import json
-
 import numpy as np
 import pandas as pd
 
-from pinpricer.config import RAW_DIR, ROOT
+from pinpricer.config import RAW_DIR
 from pinpricer.data import store
 from pinpricer.model import fv
 from pinpricer.model.vol import VolModel, proxy_minutes
 
 TRAIN_END = pd.Timestamp("2026-05-01", tz="UTC")
-OUT = ROOT / "docs" / "results"
 LADDER_EVERY_MIN = 5          # subsample ladder minutes (15.9M rows → ~3M)
 MAX_SPREAD = 0.10
 RNG = np.random.default_rng(0)
@@ -114,8 +111,7 @@ def tau_bucket(cadence: str, tau: pd.Series) -> pd.Series:
     return pd.cut(tau, edges, right=True).astype(str)
 
 
-def main() -> None:
-    OUT.mkdir(parents=True, exist_ok=True)
+def run() -> dict:
     px = proxy_minutes()
     vm = VolModel(px, TRAIN_END)
     tails = fit_tails(px, vm)
@@ -188,9 +184,4 @@ def main() -> None:
                                  "realized_minus_mid": float(100 * np.mean(g.y - g["mid"]))}
                              for b, g in far.groupby(zb)}
 
-    (OUT / "calibration.json").write_text(json.dumps(res, indent=2, default=float))
-    print(json.dumps(res, indent=1, default=float))
-
-
-if __name__ == "__main__":
-    main()
+    return res

@@ -128,3 +128,38 @@ def test_rate_limiter_enforces_rate():
     for _ in range(11):
         lim.acquire()
     assert time.monotonic() - t >= 0.19  # 10 waits at 20 ms each
+
+
+# ---------------------------------------------------------------- positioning, trades, events
+
+
+def test_parse_binance_metrics():
+    head = ("create_time,symbol,sum_open_interest,sum_open_interest_value,count_toptrader_long_short_ratio,"
+            "sum_toptrader_long_short_ratio,count_long_short_ratio,sum_taker_long_short_vol_ratio\n")
+    row = "2026-07-15 00:05:00,BTCUSDT,105529.04,6858159902.67,1.28,1.47,1.19,0.74\n"
+    df = spot.parse_binance_metrics(_zip_csv(head + row))
+    assert df["ts"].iloc[0] == T("2026-07-15 00:05", tz="UTC")
+    assert df["oi_btc"].iloc[0] == pytest.approx(105529.04) and df["taker_buy_sell_vol"].iloc[0] == 0.74
+
+
+@pytest.mark.parametrize("ts,header", [(1784073600000, True), (1784073600000000, False)])
+def test_parse_binance_aggtrades_spot_and_futures(ts, header):
+    head = "agg_trade_id,price,quantity,first_trade_id,last_trade_id,transact_time,is_buyer_maker\n"
+    row = f"1,65000.5,0.25,10,12,{ts},true\n"
+    df = spot.parse_binance_aggtrades(_zip_csv((head if header else "") + row))
+    assert df["ts"].iloc[0] == T("2026-07-15", tz="UTC") and bool(df["buyer_maker"].iloc[0])
+
+
+def test_parse_trades_keeps_taker_side_and_price():
+    raw = [{"ticker": "X", "created_time": "2026-07-15T21:44:58.151266Z", "yes_price_dollars": "0.4100",
+            "count_fp": "1,250.00", "taker_side": "no"}]
+    row = kalshi.parse_trades(raw).iloc[0]
+    assert row["yes_price"] == pytest.approx(0.41) and row["count"] == 1250 and row["taker_side"] == "no"
+
+
+def test_events_calendar_converts_et_to_utc():
+    from pinpricer.research.events import load_events
+    e = load_events()
+    cpi = e[(e.event == "CPI") & (e.date == "2026-07-14")].ts.iloc[0]
+    assert cpi == T("2026-07-14 12:30", tz="UTC")  # 8:30 EDT
+    assert set(e.event) == {"CPI", "NFP", "FOMC"}

@@ -1,13 +1,38 @@
-# Scheduled macro releases (times US/Eastern). Used for event variance bumps in the vol model.
-# FOMC: statement day of each meeting, 2:00 PM ET. Source: federalreserve.gov/monetarypolicy/fomccalendars.htm (fetched 2026-10-30)
-# TODO: CPI and NFP (8:30 AM ET) dates. The BLS schedule blocks automated fetching; add them by hand from bls.gov/schedule.
+# Scheduled US macro releases (times US/Eastern). Used for event variance bumps.
+# FOMC statement days, 2:00 PM ET: federalreserve.gov/monetarypolicy/fomccalendars.htm (fetched 2026-10-30)
+# CPI and Employment Situation (NFP), 8:30 AM ET: bls.gov/schedule/2026/ monthly schedules and
+#   bls.gov/bls/2025-lapse-revised-release-dates.htm (fetched 2026-11-04). The Oct 2025 CPI and the
+#   standalone Oct 2025 jobs report were cancelled by the 2025 shutdown; several dates moved (noted).
 date,time_et,event
 2025-10-29,14:00,FOMC
+2025-11-20,08:30,NFP
 2025-12-10,14:00,FOMC
+2025-12-16,08:30,NFP
+2025-12-18,08:30,CPI
+2026-01-09,08:30,NFP
+2026-01-13,08:30,CPI
 2026-01-28,14:00,FOMC
+2026-02-11,08:30,NFP
+2026-02-13,08:30,CPI
+2026-03-06,08:30,NFP
+2026-03-11,08:30,CPI
 2026-03-18,14:00,FOMC
+2026-04-03,08:30,NFP
+2026-04-10,08:30,CPI
 2026-04-29,14:00,FOMC
+2026-05-08,08:30,NFP
+2026-05-12,08:30,CPI
+2026-06-05,08:30,NFP
+2026-06-10,08:30,CPI
 2026-06-17,14:00,FOMC
+2026-07-02,08:30,NFP
+2026-07-14,08:30,CPI
 2026-07-29,14:00,FOMC
+2026-08-07,08:30,NFP
+2026-08-12,08:30,CPI
+2026-09-04,08:30,NFP
+2026-09-11,08:30,CPI
 2026-09-16,14:00,FOMC
+2026-10-02,08:30,NFP
+2026-10-14,08:30,CPI
 2026-10-28,14:00,FOMC

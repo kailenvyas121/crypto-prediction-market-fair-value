@@ -70,6 +70,10 @@ class KalshiClient:
                      {"start_ts": start, "end_ts": end, "period_interval": minutes}, allow_404=True)
         return (d or {}).get("candlesticks") or []
 
+    def trades_page(self, ticker: str, historical: bool, cursor: str | None) -> dict:
+        params = {"ticker": ticker, "limit": 1000} | ({"cursor": cursor} if cursor else {})
+        return self.get("/historical/trades" if historical else "/markets/trades", params)
+
     def candles_batch(self, tickers: list[str], start: int, end: int, minutes: int = 1) -> dict[str, list[dict]]:
         d = self.get("/markets/candlesticks", {"market_tickers": ",".join(tickers), "start_ts": start,
                                                "end_ts": end, "period_interval": minutes})
@@ -265,6 +269,62 @@ def pull_candles(client: KalshiClient, series: str, markets: pd.DataFrame, minut
             out_rows = [r for j in jobs for r in j.result()]
             if out_rows:
                 store.write_part(pd.DataFrame(out_rows), out, day)
+
+
+def parse_trades(trades: list[dict]) -> pd.DataFrame:
+    """One row per fill. `taker_side` is the outcome the taker bought; the maker holds the other side."""
+    df = pd.DataFrame([{"ticker": x["ticker"], "ts": x["created_time"], "yes_price": _f(x["yes_price_dollars"]),
+                        "count": _f(x["count_fp"]), "taker_side": x["taker_side"]} for x in trades])
+    if not df.empty:
+        df["ts"] = pd.to_datetime(df["ts"], utc=True, format="ISO8601")
+    return df
+
+
+def trade_sample(markets: pd.DataFrame, cadence_: str, n_events: int, band_pct: float, seed: int,
+                 start: pd.Timestamp) -> pd.DataFrame:
+    """Random events of one cadence closing after `start`; strikes within ±band_pct of the settlement.
+
+    Strikes are chosen by distance to settlement only to bound the pull (far strikes barely trade);
+    the markout study conditions on trade-time information, so this does not leak into pricing.
+    """
+    m = markets[(markets["cadence"] == cadence_) & (markets["close_time"] >= start)].dropna(subset=["floor_strike"])
+    events = m["event_ticker"].drop_duplicates().sample(n=min(n_events, m["event_ticker"].nunique()),
+                                                         random_state=seed)
+    m = m[m["event_ticker"].isin(events)]
+    near = (m["floor_strike"] / m["expiration_value"] - 1).abs() <= band_pct / 100
+    return m[near | (m["cadence"] == "fifteen_min")]
+
+
+def pull_trades(client: KalshiClient, series: str, sample: pd.DataFrame, workers: int) -> None:
+    out = _series_dir(series) / "trades"
+
+    def one(row) -> None:
+        if store.is_done(out, row.ticker):
+            return
+        rows, cursor, hist = [], None, row.close_time < client.cutoff
+        while True:
+            d = client.trades_page(row.ticker, hist, cursor)
+            rows += d.get("trades", [])
+            cursor = d.get("cursor")
+            if not cursor or not d.get("trades"):
+                break
+        store.write_part(parse_trades(rows) if rows else pd.DataFrame(columns=["ticker"]), out, row.ticker)
+
+    with ThreadPoolExecutor(workers) as ex:
+        list(tqdm(ex.map(one, sample.itertuples()), total=len(sample), desc=f"{series} trades", unit="mkt"))
+
+
+def run_trades(series_names: list[str] | None = None) -> None:
+    cfg = load_config()["kalshi"]
+    tcfg = cfg["trades_sample"]
+    client = KalshiClient(cfg["base_url"], rate=cfg.get("requests_per_second"))
+    start = pd.Timestamp(tcfg["start"], tz="UTC")
+    for series in series_names or list(cfg["series"]):
+        markets = pd.read_parquet(_series_dir(series) / "markets.parquet")
+        sample = pd.concat([trade_sample(markets, c, n, tcfg["strike_band_pct"], tcfg["seed"], start)
+                            for c, n in tcfg["events"].items() if c in cfg["series"][series]["cadences"]])
+        print(f"{series}: {len(sample):,} markets in the trade sample")
+        pull_trades(client, series, sample, cfg["workers"])
 
 
 def run(series_names: list[str] | None = None, *, stages=("markets", "candles")) -> None:

@@ -1,0 +1,28 @@
+{
+  "fifteen_min": {
+    "n": 98162,
+    "median_abs_gap_bp": 0.9217819364897115,
+    "p90_abs_gap_bp": 2.802691116348494,
+    "slope_gap_bp_per_sigma_of_distance": 1.6001745553148456
+  },
+  "hourly": {
+    "n": 85685,
+    "median_abs_gap_bp": 1.6680784694087611,
+    "p90_abs_gap_bp": 6.100423207433345,
+    "slope_gap_bp_per_sigma_of_distance": 2.6135532118410203
+  },
+  "same_minute": {
+    "n_minutes": 13376,
+    "corr_15m_vs_hourly_gap": 0.33543350032883834,
+    "median_abs_15m_gap_bp": 0.9396506332269252,
+    "median_abs_15m_minus_hourly_bp": 0.7939668563307343
+  },
+  "reprice_15m_on_ladder_implied_index": {
+    "n": 13376,
+    "mae_vs_mid_cents_model": 4.45057518064915,
+    "mae_vs_mid_cents_ladder_index": 4.205135247512396,
+    "brier_model": 0.20981398427625358,
+    "brier_ladder_index": 0.2106772991811788,
+    "brier_mid": 0.20746580629485645
+  }
+}
