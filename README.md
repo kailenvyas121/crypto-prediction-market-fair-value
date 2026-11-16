@@ -57,7 +57,7 @@ No API keys are needed. Setting `KALSHI_API_KEY_ID` and `KALSHI_PRIVATE_KEY_PATH
 configs/            study window, data sources, fill sample, macro release calendar
 docs/               the framework (01–06), glossary, data dictionary, memo, results/*.json
 scripts/            pull_*.py (data), run_studies.py (all studies)
-src/pinpricer/
+src/pinpricer/        the pricing engine (the installable package; "pin" as in pinning a fair value)
   data/             resumable, rate-limited clients: Kalshi, Coinbase, Bitstamp, Binance, Deribit, Wikipedia
   model/            variance forecast (vol.py) and digital pricing on averaged settlement (fv.py)
   research/         one module per study: proxy, calibration, index_gap, lead, positioning, beta, events, sentiment, markouts
